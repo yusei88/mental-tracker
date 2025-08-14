@@ -1,0 +1,17 @@
+###
+
+GET http://localhost:8080/ HTTP/1.1
+Accept: application/json
+
+###
+
+POST http://localhost:8080/entries HTTP/1.1
+Accept: application/json
+Content-Type: application/json
+
+{
+    "record_date": "2025-08-14",
+    "mood_score": 4,
+    "sleep_hours": 6.5,
+    "memo": "今日はよく眠れた"
+}

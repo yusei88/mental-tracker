@@ -1,3 +1,19 @@
-.venv/
-mongo_data/
+# 環境変数管理
 .env
+
+# Python関連
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+.cache/
+*.log
+.ipynb_checkpoints/
+
+# ローカルDB関連
+mongo_data/
