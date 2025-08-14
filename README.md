@@ -1,5 +1,7 @@
 # MindTrack — MVP
 
+[![codecov](https://codecov.io/gh/yusei88/mental-tracker/branch/main/graph/badge.svg)](https://codecov.io/gh/yusei88/mental-tracker)
+
 ## 概要
 
 **MindTrack** は、日々の気分スコアや睡眠時間、メモを記録し、シンプルな機械学習モデルで翌日の気分スコアを予測する Web アプリケーションです。  
