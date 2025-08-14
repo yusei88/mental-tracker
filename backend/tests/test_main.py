@@ -37,6 +37,18 @@ class TestMainApi:
             def insert_one(self, entry):
                 # 実際のDB挿入は不要。inserted_idのみ返す
                 return MockInsertOneResult()
+            
+            def find(self, query):
+                # サンプルデータを返すモック
+                return [
+                    {
+                        "_id": "64f8b...",
+                        "record_date": "2025-08-14",
+                        "mood_score": 4,
+                        "sleep_hours": 7,
+                        "memo": "今日は穏やかだった"
+                    }
+                ]
 
         class MockDB:
             def __getitem__(self, name):
@@ -275,41 +287,7 @@ class TestMainApi:
             And:   レスポンスボディのキー'entries'のバリューが配列である
     """
 
-    def test_get_entries_success(self, client, monkeypatch):
-        # MockCollectionをGET用に更新
-        class MockCollectionForGet:
-            def find(self, query):
-                # サンプルデータを返すモック
-                return [
-                    {
-                        "_id": "64f8b...",
-                        "record_date": "2025-08-14",
-                        "mood_score": 4,
-                        "sleep_hours": 7,
-                        "memo": "今日は穏やかだった"
-                    }
-                ]
-
-            def insert_one(self, entry):
-                # 既存のinsert_one用の互換性のため
-                class MockInsertOneResult:
-                    @property
-                    def inserted_id(self):
-                        return TestMainApi.DUMMY_ID
-                return MockInsertOneResult()
-
-        class MockDBForGet:
-            def __getitem__(self, name):
-                return MockCollectionForGet()
-
-        class MockClientForGet:
-            def __getitem__(self, name):
-                return MockDBForGet()
-
-        # テスト用のアプリ状態を設定
-        from app.main import app
-        app.state.mongo = MockClientForGet()
-
+    def test_get_entries_success(self, client):
         response = client.get("/entries")
         assert response.status_code == 200
         resp_json = response.json()

@@ -47,17 +47,16 @@ async def get_entries(request: Request):
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     try:
         cursor = entries_collection.find({})
-        entries = []
-        for doc in cursor:
-            # MongoDB ドキュメントをレスポンス形式に変換
-            entry_data = {
+        entries = [
+            {
                 "id": str(doc["_id"]),
                 "record_date": doc["record_date"],
                 "mood": doc["mood_score"],  # mood_score -> mood
                 "sleep_hours": doc["sleep_hours"],
                 "notes": doc.get("memo")  # memo -> notes
             }
-            entries.append(entry_data)
+            for doc in cursor
+        ]
         return {"status": "success", "entries": entries}
     except PyMongoError as err:
         raise HTTPException(
