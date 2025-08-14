@@ -158,7 +158,6 @@ class TestMainApi:
         entry_dict.pop("mood_score", None)
         response = client.post("/entries", json=entry_dict)
         assert response.status_code == 422
-        dummy_entry.model_dump()
         resp_json = response.json()
         assert "error" in resp_json.get("detail", "") or "mood_score" in str(resp_json)
 
@@ -178,7 +177,6 @@ class TestMainApi:
         entry_dict.pop("sleep_hours", None)
         response = client.post("/entries", json=entry_dict)
         assert response.status_code == 422
-        dummy_entry.model_dump()
         resp_json = response.json()
         assert "error" in resp_json.get("detail", "") or "sleep_hours" in str(resp_json)
 
@@ -198,7 +196,6 @@ class TestMainApi:
         entry_dict["mood_score"] = -1
         response = client.post("/entries", json=entry_dict)
         assert response.status_code == 422
-        dummy_entry.model_dump()
         resp_json = response.json()
         assert "error" in resp_json.get("detail", "") or "mood_score" in str(resp_json)
 
@@ -218,7 +215,6 @@ class TestMainApi:
         entry_dict["mood_score"] = 6
         response = client.post("/entries", json=entry_dict)
         assert response.status_code == 422
-        dummy_entry.model_dump()
         resp_json = response.json()
         assert "error" in resp_json.get("detail", "") or "mood_score" in str(resp_json)
 
@@ -238,7 +234,6 @@ class TestMainApi:
         entry_dict["sleep_hours"] = -1
         response = client.post("/entries", json=entry_dict)
         assert response.status_code == 422
-        dummy_entry.model_dump()
         resp_json = response.json()
         assert "error" in resp_json.get("detail", "") or "sleep_hours" in str(resp_json)
 
@@ -258,6 +253,5 @@ class TestMainApi:
         entry_dict["sleep_hours"] = "eight"
         response = client.post("/entries", json=entry_dict)
         assert response.status_code == 422
-        dummy_entry.model_dump()
         resp_json = response.json()
         assert "error" in resp_json.get("detail", "") or "sleep_hours" in str(resp_json)
