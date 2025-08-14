@@ -41,17 +41,14 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.get("/entries")
-async def get_entries(request: Request):
+@app.get("/entries", response_model=EntriesResponse)
+async def get_entries(request: Request) -> EntriesResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     try:
         cursor = entries_collection.find({})
-        entries = [
-            Entry(**{k: v for k, v in doc.items() if k != "_id"}, id=str(doc["_id"])).model_dump()
-            for doc in cursor
-        ]
-        return {"status": "success", "entries": entries}
+        entries = [Entry(**doc) for doc in cursor]
+        return EntriesResponse(status="success", entries=entries)
     except PyMongoError as err:
         raise HTTPException(
             status_code=500, detail="failed to retrieve entries") from err

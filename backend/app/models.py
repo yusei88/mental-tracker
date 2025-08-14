@@ -6,6 +6,7 @@ from typing import Optional, List
 class Entry(BaseModel):
     id: Optional[str] = Field(
         default=None,
+        validation_alias="_id",
         description="エントリーID（自動生成、任意）",
         json_schema_extra={"example": "dummy_id"}
     )
@@ -31,7 +32,8 @@ class Entry(BaseModel):
     )
 
     model_config = {
-        "extra": "forbid"
+        "extra": "forbid",
+        "populate_by_name": True
     }
 
     @field_serializer('record_date')
