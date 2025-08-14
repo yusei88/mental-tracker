@@ -54,8 +54,6 @@ jobs:
         directory: ./backend
         fail_ci_if_error: false
         verbose: true
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         
     - name: Comment PR with coverage
       if: github.event_name == 'pull_request'
