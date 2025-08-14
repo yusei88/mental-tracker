@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+from logging import getLogger
 from dotenv import load_dotenv
 
 from .models import Entry, EntryResponse
@@ -12,10 +13,13 @@ from .constants import DB
 
 load_dotenv()
 
+# logger作成
+logger = getLogger(__name__)
+
 # MongoDB接続
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    print("[DEBUG] DATABASE_URLが未設定です。環境変数を設定してください。")
+    logger.error("[DEBUG] DATABASE_URLが未設定です。環境変数を設定してください。")
     exit(1)
 MONGO_URI = DATABASE_URL
 
