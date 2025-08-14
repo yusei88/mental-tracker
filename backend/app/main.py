@@ -7,7 +7,7 @@ from pymongo.errors import PyMongoError
 from logging import getLogger
 from dotenv import load_dotenv
 
-from .models import Entry, EntryResponse, EntriesResponse, EntryForResponse
+from .models import Entry, EntryResponse, EntriesResponse
 from .constants import DB
 
 
@@ -41,15 +41,15 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.get("/entries", response_model=EntriesResponse)
-async def get_entries(request: Request) -> EntriesResponse:
+@app.get("/entries")
+async def get_entries(request: Request):
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     try:
         cursor = entries_collection.find({})
         entries = []
         for doc in cursor:
-            # MongoDBのドキュメントをEntryForResponseに変換
+            # MongoDB ドキュメントをレスポンス形式に変換
             entry_data = {
                 "id": str(doc["_id"]),
                 "record_date": doc["record_date"],
@@ -57,8 +57,8 @@ async def get_entries(request: Request) -> EntriesResponse:
                 "sleep_hours": doc["sleep_hours"],
                 "notes": doc.get("memo")  # memo -> notes
             }
-            entries.append(EntryForResponse(**entry_data))
-        return EntriesResponse(status="success", entries=entries)
+            entries.append(entry_data)
+        return {"status": "success", "entries": entries}
     except PyMongoError as err:
         raise HTTPException(
             status_code=500, detail="failed to retrieve entries") from err

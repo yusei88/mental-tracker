@@ -66,39 +66,6 @@ class EntryResponse(BaseModel):
     entry: Entry
 
 
-class EntryForResponse(BaseModel):
-    id: Optional[str] = Field(
-        default=None,
-        description="エントリーID（自動生成、任意）",
-        json_schema_extra={"example": "dummy_id"}
-    )
-    record_date: date = Field(
-        description="記録日（必須、YYYY-MM-DD形式）",
-        json_schema_extra={"example": "2025-08-14"}
-    )
-    mood: StrictInt = Field(
-        description="メンタルスコア（必須、1〜5の整数）",
-        ge=0,
-        le=5,
-        json_schema_extra={"example": 4}
-    )
-    sleep_hours: StrictFloat = Field(
-        description="睡眠時間（必須、0〜24の小数）",
-        ge=0,
-        le=24,
-        json_schema_extra={"example": 6.5}
-    )
-    notes: Optional[str] = Field(
-        default=None,
-        description="メモ（任意、空文字可）",
-        json_schema_extra={"example": "今日はよく眠れた"}
-    )
-
-    @field_serializer('record_date')
-    def serialize_record_date(self, v: date) -> str:
-        return v.isoformat()
-
-
 class EntriesResponse(BaseModel):
     status: str
-    entries: List[EntryForResponse]
+    entries: List[Entry]
