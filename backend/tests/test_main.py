@@ -263,3 +263,147 @@ class TestMainApi:
         resp_json = response.json()
         assert "error" in resp_json.get(
             "detail", "") or "sleep_hours" in str(resp_json)
+
+    # エントリー取得APIのテスト
+    """
+    Feature: エントリー取得API
+        Scenario: エントリーの一覧取得に成功する
+            Given: 実行可能なAPIクライアントがある
+            When:  '/entries'にGETリクエストを実行する
+            Then:  レスポンスのステータスコードは200である
+            And:   レスポンスボディのキー'status'のバリューに'success'が含まれる
+            And:   レスポンスボディのキー'entries'のバリューが配列である
+    """
+
+    def test_get_entries_success(self, client, monkeypatch):
+        # MockCollectionをGET用に更新
+        class MockCollectionForGet:
+            def find(self, query):
+                # サンプルデータを返すモック
+                return [
+                    {
+                        "_id": "64f8b...",
+                        "record_date": "2025-08-14",
+                        "mood_score": 4,
+                        "sleep_hours": 7,
+                        "memo": "今日は穏やかだった"
+                    }
+                ]
+
+            def insert_one(self, entry):
+                # 既存のinsert_one用の互換性のため
+                class MockInsertOneResult:
+                    @property
+                    def inserted_id(self):
+                        return TestMainApi.DUMMY_ID
+                return MockInsertOneResult()
+
+        class MockDBForGet:
+            def __getitem__(self, name):
+                return MockCollectionForGet()
+
+        class MockClientForGet:
+            def __getitem__(self, name):
+                return MockDBForGet()
+
+        # テスト用のアプリ状態を設定
+        from app.main import app
+        app.state.mongo = MockClientForGet()
+
+        response = client.get("/entries")
+        assert response.status_code == 200
+        resp_json = response.json()
+        assert resp_json["status"] == "success"
+        assert "entries" in resp_json
+        assert isinstance(resp_json["entries"], list)
+        if len(resp_json["entries"]) > 0:
+            entry = resp_json["entries"][0]
+            assert "id" in entry
+            assert "record_date" in entry
+            assert "mood" in entry
+            assert "sleep_hours" in entry
+            assert "notes" in entry
+
+    """
+    Feature: エントリー取得API
+        Scenario: エントリーが0件の場合は空配列を返す
+            Given: 実行可能なAPIクライアントがある
+            When:  '/entries'にGETリクエストを実行する（DB内に0件）
+            Then:  レスポンスのステータスコードは200である
+            And:   レスポンスボディのキー'status'のバリューに'success'が含まれる
+            And:   レスポンスボディのキー'entries'のバリューが空配列である
+    """
+
+    def test_get_entries_empty(self, client, monkeypatch):
+        # 空のデータを返すモック
+        class MockCollectionEmpty:
+            def find(self, query):
+                return []
+
+            def insert_one(self, entry):
+                # 既存のinsert_one用の互換性のため
+                class MockInsertOneResult:
+                    @property
+                    def inserted_id(self):
+                        return TestMainApi.DUMMY_ID
+                return MockInsertOneResult()
+
+        class MockDBEmpty:
+            def __getitem__(self, name):
+                return MockCollectionEmpty()
+
+        class MockClientEmpty:
+            def __getitem__(self, name):
+                return MockDBEmpty()
+
+        # テスト用のアプリ状態を設定
+        from app.main import app
+        app.state.mongo = MockClientEmpty()
+
+        response = client.get("/entries")
+        assert response.status_code == 200
+        resp_json = response.json()
+        assert resp_json["status"] == "success"
+        assert resp_json["entries"] == []
+
+    """
+    Feature: エントリー取得API
+        Scenario: データベースエラーが発生した場合は500エラーを返す
+            Given: 実行可能なAPIクライアントがある
+            When:  '/entries'にGETリクエストを実行する（DB接続エラー）
+            Then:  レスポンスのステータスコードは500である
+    """
+
+    def test_get_entries_database_error(self, client, monkeypatch):
+        from pymongo.errors import PyMongoError
+        
+        # エラーを発生させるモック
+        class MockCollectionError:
+            def find(self, query):
+                raise PyMongoError("Database connection failed")
+
+            def insert_one(self, entry):
+                # 既存のinsert_one用の互換性のため
+                class MockInsertOneResult:
+                    @property
+                    def inserted_id(self):
+                        return TestMainApi.DUMMY_ID
+                return MockInsertOneResult()
+
+        class MockDBError:
+            def __getitem__(self, name):
+                return MockCollectionError()
+
+        class MockClientError:
+            def __getitem__(self, name):
+                return MockDBError()
+
+        # テスト用のアプリ状態を設定
+        from app.main import app
+        app.state.mongo = MockClientError()
+
+        response = client.get("/entries")
+        assert response.status_code == 500
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "failed to retrieve entries" in resp_json["detail"]
