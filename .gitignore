@@ -15,5 +15,12 @@ build/
 *.log
 .ipynb_checkpoints/
 
+# テスト・カバレッジ関連
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+
 # ローカルDB関連
 mongo_data/
