@@ -37,8 +37,8 @@ async def add_entry(entry: Entry) -> EntryResponse:
         entry_dict.pop("id", None)  # _id採番に任せる
         try:
             result = entries_collection.insert_one(entry_dict)
-        except PyMongoError:
-            raise HTTPException(status_code=500, detail="failed to insert entry")
+        except PyMongoError as err:
+            raise HTTPException(status_code=500, detail="failed to insert entry") from err
         entry.id = str(result.inserted_id)
         return EntryResponse(status="success", entry=entry)
 
