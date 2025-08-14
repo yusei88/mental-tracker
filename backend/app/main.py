@@ -48,16 +48,21 @@ async def get_entries(request: Request):
     try:
         cursor = entries_collection.find({})
         entries = [
-            {
-                "id": str(doc["_id"]),
-                "record_date": doc["record_date"],
-                "mood": doc["mood_score"],  # mood_score -> mood
-                "sleep_hours": doc["sleep_hours"],
-                "notes": doc.get("memo")  # memo -> notes
-            }
+            Entry(**{k: v for k, v in doc.items() if k != "_id"}, id=str(doc["_id"])).model_dump()
             for doc in cursor
         ]
-        return {"status": "success", "entries": entries}
+        # Need to convert field names for response
+        response_entries = []
+        for entry in entries:
+            response_entry = {
+                "id": entry["id"],
+                "record_date": entry["record_date"],
+                "mood": entry["mood_score"],  # mood_score -> mood
+                "sleep_hours": entry["sleep_hours"],
+                "notes": entry.get("memo")  # memo -> notes
+            }
+            response_entries.append(response_entry)
+        return {"status": "success", "entries": response_entries}
     except PyMongoError as err:
         raise HTTPException(
             status_code=500, detail="failed to retrieve entries") from err

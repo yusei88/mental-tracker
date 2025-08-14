@@ -25,6 +25,9 @@ class TestMainApi:
 
     @pytest.fixture
     def client(self, monkeypatch):
+        return self._create_client("normal")
+    
+    def _create_client(self, mock_type="normal"):
         from fastapi.testclient import TestClient
         from app.main import app
 
@@ -34,27 +37,42 @@ class TestMainApi:
                 return TestMainApi.DUMMY_ID
 
         class MockCollection:
+            def __init__(self, mock_type="normal"):
+                self.mock_type = mock_type
+                
             def insert_one(self, entry):
                 # 実際のDB挿入は不要。inserted_idのみ返す
                 return MockInsertOneResult()
             
             def find(self, query):
-                # サンプルデータを返すモック
-                return [
-                    {
-                        "_id": "64f8b...",
-                        "record_date": "2025-08-14",
-                        "mood_score": 4,
-                        "sleep_hours": 7,
-                        "memo": "今日は穏やかだった"
-                    }
-                ]
+                if self.mock_type == "empty":
+                    return []
+                elif self.mock_type == "error":
+                    from pymongo.errors import PyMongoError
+                    raise PyMongoError("Database connection failed")
+                else:
+                    # サンプルデータを返すモック
+                    return [
+                        {
+                            "_id": "64f8b...",
+                            "record_date": "2025-08-14",
+                            "mood_score": 4,
+                            "sleep_hours": 7,
+                            "memo": "今日は穏やかだった"
+                        }
+                    ]
 
         class MockDB:
+            def __init__(self, mock_type="normal"):
+                self.mock_type = mock_type
+                
             def __getitem__(self, name):
-                return MockCollection()
+                return MockCollection(self.mock_type)
 
         class MockClient:
+            def __init__(self, mock_type="normal"):
+                self.mock_type = mock_type
+                
             def __enter__(self):
                 return self
 
@@ -62,10 +80,10 @@ class TestMainApi:
                 pass
 
             def __getitem__(self, name):
-                return MockDB()
+                return MockDB(self.mock_type)
 
         # lifespan利用のため、app起動前にstate.mongoへ直接MockClientをセット
-        app.state.mongo = MockClient()
+        app.state.mongo = MockClient(mock_type)
         return TestClient(app)
 
     # サンプルテスト
@@ -312,32 +330,8 @@ class TestMainApi:
             And:   レスポンスボディのキー'entries'のバリューが空配列である
     """
 
-    def test_get_entries_empty(self, client, monkeypatch):
-        # 空のデータを返すモック
-        class MockCollectionEmpty:
-            def find(self, query):
-                return []
-
-            def insert_one(self, entry):
-                # 既存のinsert_one用の互換性のため
-                class MockInsertOneResult:
-                    @property
-                    def inserted_id(self):
-                        return TestMainApi.DUMMY_ID
-                return MockInsertOneResult()
-
-        class MockDBEmpty:
-            def __getitem__(self, name):
-                return MockCollectionEmpty()
-
-        class MockClientEmpty:
-            def __getitem__(self, name):
-                return MockDBEmpty()
-
-        # テスト用のアプリ状態を設定
-        from app.main import app
-        app.state.mongo = MockClientEmpty()
-
+    def test_get_entries_empty(self, monkeypatch):
+        client = self._create_client("empty")
         response = client.get("/entries")
         assert response.status_code == 200
         resp_json = response.json()
@@ -352,34 +346,8 @@ class TestMainApi:
             Then:  レスポンスのステータスコードは500である
     """
 
-    def test_get_entries_database_error(self, client, monkeypatch):
-        from pymongo.errors import PyMongoError
-        
-        # エラーを発生させるモック
-        class MockCollectionError:
-            def find(self, query):
-                raise PyMongoError("Database connection failed")
-
-            def insert_one(self, entry):
-                # 既存のinsert_one用の互換性のため
-                class MockInsertOneResult:
-                    @property
-                    def inserted_id(self):
-                        return TestMainApi.DUMMY_ID
-                return MockInsertOneResult()
-
-        class MockDBError:
-            def __getitem__(self, name):
-                return MockCollectionError()
-
-        class MockClientError:
-            def __getitem__(self, name):
-                return MockDBError()
-
-        # テスト用のアプリ状態を設定
-        from app.main import app
-        app.state.mongo = MockClientError()
-
+    def test_get_entries_database_error(self, monkeypatch):
+        client = self._create_client("error")
         response = client.get("/entries")
         assert response.status_code == 500
         resp_json = response.json()
