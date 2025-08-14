@@ -1,0 +1,94 @@
+# CodeRabbit configuration file
+# Reference: https://docs.coderabbit.ai/getting-started/configure-coderabbit
+
+# Language configuration for Japanese reviews
+language: ja
+
+# General review configuration
+reviews:
+  # Automatically review all pull requests
+  auto_review: true
+  
+  # Request changes vs. suggestions
+  request_changes: auto
+  
+  # High-level summary of changes
+  high_level_summary: true
+  
+  # Poem generation for PR summary
+  poem: false
+  
+  # Review style configuration
+  review_style: "constructive"
+  
+  # Mention assignees in review comments
+  mention_assignees: true
+
+# Path-based configuration for file inclusion/exclusion
+path_filters:
+  # Files to include in review
+  include:
+    - "**/*.py"
+    - "**/*.js"
+    - "**/*.ts"
+    - "**/*.vue"
+    - "**/*.yaml"
+    - "**/*.yml"
+    - "**/*.json"
+    - "**/*.md"
+    - "**/*.dockerfile"
+    - "**/Dockerfile*"
+    - "**/*.sql"
+    - "**/*.html"
+    - "**/*.css"
+    - "**/*.scss"
+  
+  # Files to exclude from review
+  exclude:
+    - "**/node_modules/**"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/*.min.js"
+    - "**/*.min.css"
+    - "**/coverage/**"
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+    - "**/venv/**"
+    - "**/env/**"
+    - "**/.git/**"
+    - "**/mongo_data/**"
+    - "**/.pytest_cache/**"
+    - "**/logs/**"
+
+# Chat configuration for interaction with CodeRabbit
+chat:
+  # Enable auto-replies to review comments
+  auto_reply: false
+
+# Custom instructions for better reviews
+instructions: |
+  CodeRabbitのレビューに関する指示：
+  
+  1. **言語設定**: すべてのレビューコメントは日本語で記載してください
+  
+  2. **メンション機能**: PRにアサインされているメンバーを適切にメンションしてください（@username形式で）
+  
+  3. **レビュー観点**:
+     - コードの品質と可読性
+     - セキュリティの問題
+     - パフォーマンスの最適化
+     - 保守性とテスタビリティ
+     - ベストプラクティスの遵守
+     - ドキュメントの適切性
+  
+  4. **フィードバックスタイル**:
+     - 建設的で具体的なフィードバックを提供
+     - 改善提案には具体的なコード例を含める
+     - 問題の重要度を明確に示す
+     - 学習の機会となるような説明を追加
+  
+  5. **特別な注意事項**:
+     - FastAPI、Vue.js、MongoDB関連のベストプラクティスを重視
+     - テストコードの品質と網羅性をチェック
+     - API設計とデータモデルの整合性を確認
+     - セキュリティ脆弱性（特にMongoDB injection）に注意

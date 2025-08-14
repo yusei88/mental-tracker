@@ -139,6 +139,27 @@ gsutil web set -m index.html gs://<BUCKET_NAME>
 
 ---
 
+## CodeRabbit 設定
+
+このプロジェクトでは、GitHub Copilotが作成したPRに対してCodeRabbitによる自動レビューが実行されます。
+
+### 設定ファイル
+
+- `.coderabbit.yaml`: CodeRabbitの設定ファイル
+  - 日本語でのレビューコメント
+  - PRアサインメンバーの自動メンション
+  - プロジェクト固有のレビュー観点（FastAPI、Vue.js、MongoDB）
+
+### 機能
+
+- **自動レビュー**: すべてのPRで自動的にコードレビューを実行
+- **日本語対応**: レビューコメントは日本語で提供
+- **メンション機能**: PRアサインメンバーを適切にメンション
+- **セキュリティチェック**: MongoDB injection等の脆弱性チェック
+- **ベストプラクティス**: FastAPI、Vue.js関連のベストプラクティスを重視
+
+---
+
 ## 参考リンク
 
 - [Vue 3 公式](https://vuejs.org/)
@@ -148,3 +169,4 @@ gsutil web set -m index.html gs://<BUCKET_NAME>
 - [Google Cloud Run](https://cloud.google.com/run)
 - [MongoDB Atlas](https://www.mongodb.com/atlas)
 - [Google Cloud Storage](https://cloud.google.com/storage)
+- [CodeRabbit 公式](https://docs.coderabbit.ai/)
