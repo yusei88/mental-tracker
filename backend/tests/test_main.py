@@ -89,7 +89,7 @@ class TestMainApi:
         # dateはISO文字列に変換
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         response = client.post("/entries", json=entry_dict)
-        assert response.status_code == 201
+        assert response.status_code == 200
         resp_json = response.json()
         assert resp_json.get("status") == "success"
         # entry内容を厳密に検証
@@ -117,7 +117,7 @@ class TestMainApi:
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["memo"] = ""
         response = client.post("/entries", json=entry_dict)
-        assert response.status_code == 201
+        assert response.status_code == 200
         resp_json = response.json()
         entry = resp_json.get("entry")
         assert entry is not None

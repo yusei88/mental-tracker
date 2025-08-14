@@ -28,19 +28,20 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.post("/entries", response_model=EntryResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/entries", response_model=EntryResponse)
 async def add_entry(entry: Entry) -> EntryResponse:
     with MongoClient(MONGO_URI) as client:
         entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
         # dict化して挿入（JSON互換、Noneは除外）
         entry_dict = entry.model_dump(mode="json", exclude_none=True)
-        entry_dict.pop("id", None)  # _id採番に任せる
+        # _id採番に任せる
+        entry_dict.pop("id", None)
         try:
             result = entries_collection.insert_one(entry_dict)
         except PyMongoError as err:
             raise HTTPException(status_code=500, detail="failed to insert entry") from err
         entry.id = str(result.inserted_id)
-        return EntryResponse(status_code=status.HTTP_201_CREATED, status="success", entry=entry)
+        return EntryResponse(status="success", entry=entry)
 
 
 app.add_middleware(
