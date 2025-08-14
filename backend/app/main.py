@@ -3,6 +3,7 @@ import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
+from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 
 from .models import Entry, EntryResponse
@@ -31,9 +32,13 @@ async def root():
 async def add_entry(entry: Entry):
     with MongoClient(MONGO_URI) as client:
         entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
-        # model_dump_jsonでdateをISO文字列化し、dict化して挿入
-        entry_dict = json.loads(entry.model_dump_json())
-        result = entries_collection.insert_one(entry_dict)
+        # dict化して挿入（JSON互換、Noneは除外）
+        entry_dict = entry.model_dump(mode="json", exclude_none=True)
+        entry_dict.pop("id", None)  # _id採番に任せる
+        try:
+            result = entries_collection.insert_one(entry_dict)
+        except PyMongoError:
+            raise HTTPException(status_code=500, detail="failed to insert entry")
         entry.id = str(result.inserted_id)
         return EntryResponse(status="success", entry=entry)
 
