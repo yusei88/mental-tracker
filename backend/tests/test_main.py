@@ -101,154 +101,7 @@ class TestMainApi:
         assert entry["sleep_hours"] == dummy_entry.sleep_hours
         assert entry["memo"] == dummy_entry.memo
 
-    # エントリー追加APIの異常系・バリデーション系テスト
-    """
-    Feature: エントリー追加API
-        Scenario: 必須項目dateが不足している場合は400エラーとなる
-            Given: 実行可能なAPIクライアントがある
-            When:  必須項目dateが欠落したデータで'/entries'にPOSTする
-            Then:  レスポンスのステータスコードは400である
-            And:   レスポンスボディにバリデーションエラーが含まれる
-    """
-
-    def test_add_entry_missing_date(self, client, dummy_entry):
-        entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
-        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
-        entry_dict.pop("record_date", None)
-        response = client.post("/entries", json=entry_dict)
-        assert response.status_code == 422
-        dummy_entry.model_dump()
-        resp_json = response.json()
-        assert "error" in resp_json.get(
-            "detail", "") or "record_date" in str(resp_json)
-
-    """
-    Feature: エントリー追加API
-        Scenario: 必須項目mood_scoreが不足している場合は400エラーとなる
-            Given: 実行可能なAPIクライアントがある
-            When:  必須項目mood_scoreが欠落したデータで'/entries'にPOSTする
-            Then:  レスポンスのステータスコードは400である
-            And:   レスポンスボディにバリデーションエラーが含まれる
-    """
-
-    def test_add_entry_missing_mood_score(self, client, dummy_entry):
-        entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
-        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
-        entry_dict.pop("mood_score", None)
-        response = client.post("/entries", json=entry_dict)
-        assert response.status_code == 422
-        dummy_entry.model_dump()
-        resp_json = response.json()
-        assert "error" in resp_json.get(
-            "detail", "") or "mood_score" in str(resp_json)
-
-    """
-    Feature: エントリー追加API
-        Scenario: 必須項目sleep_hoursが不足している場合は400エラーとなる
-            Given: 実行可能なAPIクライアントがある
-            When:  必須項目sleep_hoursが欠落したデータで'/entries'にPOSTする
-            Then:  レスポンスのステータスコードは400である
-            And:   レスポンスボディにバリデーションエラーが含まれる
-    """
-
-    def test_add_entry_missing_sleep_hours(self, client, dummy_entry):
-        entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
-        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
-        entry_dict.pop("sleep_hours", None)
-        response = client.post("/entries", json=entry_dict)
-        assert response.status_code == 422
-        dummy_entry.model_dump()
-        resp_json = response.json()
-        assert "error" in resp_json.get(
-            "detail", "") or "sleep_hours" in str(resp_json)
-
-    """
-    Feature: エントリー追加API
-        Scenario: mood_scoreが負の数の場合はバリデーションエラーとなる
-            Given: 実行可能なAPIクライアントがある
-            When:  mood_scoreが負の値で'/entries'にPOSTする
-            Then:  レスポンスのステータスコードは400または422である
-            And:   レスポンスボディにバリデーションエラーが含まれる
-    """
-
-    def test_add_entry_invalid_mood_score(self, client, dummy_entry):
-        entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
-        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
-        entry_dict["mood_score"] = -1
-        response = client.post("/entries", json=entry_dict)
-        assert response.status_code == 422
-        dummy_entry.model_dump()
-        resp_json = response.json()
-        assert "error" in resp_json.get(
-            "detail", "") or "mood_score" in str(resp_json)
-
-    """
-    Feature: エントリー追加API
-        Scenario: mood_scoreが6以上の場合はバリデーションエラーとなる
-            Given: 実行可能なAPIクライアントがある
-            When:  mood_scoreが6で'/entries'にPOSTする
-            Then:  レスポンスのステータスコードは400または422である
-            And:   レスポンスボディにバリデーションエラーが含まれる
-    """
-
-    def test_add_entry_mood_score_too_high(self, client, dummy_entry):
-        entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
-        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
-        entry_dict["mood_score"] = 6
-        response = client.post("/entries", json=entry_dict)
-        assert response.status_code == 422
-        dummy_entry.model_dump()
-        resp_json = response.json()
-        assert "error" in resp_json.get(
-            "detail", "") or "mood_score" in str(resp_json)
-
-    """
-    Feature: エントリー追加API
-        Scenario: sleep_hoursが負の数の場合はバリデーションエラーとなる
-            Given: 実行可能なAPIクライアントがある
-            When:  sleep_hoursが-1で'/entries'にPOSTする
-            Then:  レスポンスのステータスコードは400または422である
-            And:   レスポンスボディにバリデーションエラーが含まれる
-    """
-
-    def test_add_entry_sleep_hours_negative(self, client, dummy_entry):
-        entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
-        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
-        entry_dict["sleep_hours"] = -1
-        response = client.post("/entries", json=entry_dict)
-        assert response.status_code == 422
-        dummy_entry.model_dump()
-        resp_json = response.json()
-        assert "error" in resp_json.get(
-            "detail", "") or "sleep_hours" in str(resp_json)
-
-    """
-    Feature: エントリー追加API
-        Scenario: sleep_hoursが文字列の場合はバリデーションエラーとなる
-            Given: 実行可能なAPIクライアントがある
-            When:  sleep_hoursが文字列で'/entries'にPOSTする
-            Then:  レスポンスのステータスコードは400または422である
-            And:   レスポンスボディにバリデーションエラーが含まれる
-    """
-
-    def test_add_entry_invalid_sleep_hours_type(self, client, dummy_entry):
-        entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
-        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
-        entry_dict["sleep_hours"] = "eight"
-        response = client.post("/entries", json=entry_dict)
-        assert response.status_code == 422
-        dummy_entry.model_dump()
-        resp_json = response.json()
-        assert "error" in resp_json.get(
-            "detail", "") or "sleep_hours" in str(resp_json)
-
+    # エントリー追加APIの準正常系/異常系・バリデーション系テスト
     """
     Feature: エントリー追加API
         Scenario: memoが空文字でも登録できる
@@ -269,3 +122,142 @@ class TestMainApi:
         entry = resp_json.get("entry")
         assert entry is not None
         assert entry["memo"] == ""
+
+    """
+    Feature: エントリー追加API
+        Scenario: 必須項目dateが不足している場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  必須項目dateが欠落したデータで'/entries'にPOSTする
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_add_entry_missing_date(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        entry_dict.pop("record_date", None)
+        response = client.post("/entries", json=entry_dict)
+        assert response.status_code == 422
+        resp_json = response.json()
+        assert "error" in resp_json.get("detail", "") or "record_date" in str(resp_json)
+
+    """
+    Feature: エントリー追加API
+        Scenario: 必須項目mood_scoreが不足している場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  必須項目mood_scoreが欠落したデータで'/entries'にPOSTする
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_add_entry_missing_mood_score(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        entry_dict.pop("mood_score", None)
+        response = client.post("/entries", json=entry_dict)
+        assert response.status_code == 422
+        dummy_entry.model_dump()
+        resp_json = response.json()
+        assert "error" in resp_json.get("detail", "") or "mood_score" in str(resp_json)
+
+    """
+    Feature: エントリー追加API
+        Scenario: 必須項目sleep_hoursが不足している場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  必須項目sleep_hoursが欠落したデータで'/entries'にPOSTする
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_add_entry_missing_sleep_hours(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        entry_dict.pop("sleep_hours", None)
+        response = client.post("/entries", json=entry_dict)
+        assert response.status_code == 422
+        dummy_entry.model_dump()
+        resp_json = response.json()
+        assert "error" in resp_json.get("detail", "") or "sleep_hours" in str(resp_json)
+
+    """
+    Feature: エントリー追加API
+        Scenario: mood_scoreが負の数の場合はバリデーションエラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  mood_scoreが負の値で'/entries'にPOSTする
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_add_entry_invalid_mood_score(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        entry_dict["mood_score"] = -1
+        response = client.post("/entries", json=entry_dict)
+        assert response.status_code == 422
+        dummy_entry.model_dump()
+        resp_json = response.json()
+        assert "error" in resp_json.get("detail", "") or "mood_score" in str(resp_json)
+
+    """
+    Feature: エントリー追加API
+        Scenario: mood_scoreが6以上の場合はバリデーションエラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  mood_scoreが6で'/entries'にPOSTする
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_add_entry_mood_score_too_high(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        entry_dict["mood_score"] = 6
+        response = client.post("/entries", json=entry_dict)
+        assert response.status_code == 422
+        dummy_entry.model_dump()
+        resp_json = response.json()
+        assert "error" in resp_json.get("detail", "") or "mood_score" in str(resp_json)
+
+    """
+    Feature: エントリー追加API
+        Scenario: sleep_hoursが負の数の場合はバリデーションエラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  sleep_hoursが-1で'/entries'にPOSTする
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_add_entry_sleep_hours_negative(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        entry_dict["sleep_hours"] = -1
+        response = client.post("/entries", json=entry_dict)
+        assert response.status_code == 422
+        dummy_entry.model_dump()
+        resp_json = response.json()
+        assert "error" in resp_json.get("detail", "") or "sleep_hours" in str(resp_json)
+
+    """
+    Feature: エントリー追加API
+        Scenario: sleep_hoursが文字列の場合はバリデーションエラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  sleep_hoursが文字列で'/entries'にPOSTする
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_add_entry_invalid_sleep_hours_type(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        entry_dict["sleep_hours"] = "eight"
+        response = client.post("/entries", json=entry_dict)
+        assert response.status_code == 422
+        dummy_entry.model_dump()
+        resp_json = response.json()
+        assert "error" in resp_json.get("detail", "") or "sleep_hours" in str(resp_json)
