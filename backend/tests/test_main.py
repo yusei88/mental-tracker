@@ -52,7 +52,8 @@ class TestMainApi:
             def __getitem__(self, name):
                 return MockDB()
 
-        monkeypatch.setattr("app.main.MongoClient", lambda uri: MockClient())
+        # lifespan利用のため、app起動前にstate.mongoへ直接MockClientをセット
+        app.state.mongo = MockClient()
         return TestClient(app)
 
     # サンプルテスト
