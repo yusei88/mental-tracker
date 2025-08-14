@@ -1,6 +1,6 @@
 import os
 import json
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
@@ -28,7 +28,7 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.post("/entries", response_model=EntryResponse, status_code=201)
+@app.post("/entries", response_model=EntryResponse, status_code=status.HTTP_201_CREATED)
 async def add_entry(entry: Entry) -> EntryResponse:
     with MongoClient(MONGO_URI) as client:
         entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
@@ -40,7 +40,7 @@ async def add_entry(entry: Entry) -> EntryResponse:
         except PyMongoError as err:
             raise HTTPException(status_code=500, detail="failed to insert entry") from err
         entry.id = str(result.inserted_id)
-        return EntryResponse(status="success", entry=entry)
+        return EntryResponse(status_code=status.HTTP_201_CREATED, status="success", entry=entry)
 
 
 app.add_middleware(
