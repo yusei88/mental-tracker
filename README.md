@@ -43,7 +43,8 @@
 
 ## ディレクトリ構成（例）
 
-```
+```mermaid
+
 mindtrack/
 ├── backend/              # FastAPIアプリ
 │   ├── main.py
