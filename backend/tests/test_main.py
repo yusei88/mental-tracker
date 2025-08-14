@@ -316,9 +316,9 @@ class TestMainApi:
             entry = resp_json["entries"][0]
             assert "id" in entry
             assert "record_date" in entry
-            assert "mood" in entry
+            assert "mood_score" in entry
             assert "sleep_hours" in entry
-            assert "notes" in entry
+            assert "memo" in entry
 
     """
     Feature: エントリー取得API
