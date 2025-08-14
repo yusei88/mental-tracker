@@ -28,8 +28,8 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.post("/entries")
-async def add_entry(entry: Entry):
+@app.post("/entries", response_model=EntryResponse, status_code=201)
+async def add_entry(entry: Entry) -> EntryResponse:
     with MongoClient(MONGO_URI) as client:
         entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
         # dict化して挿入（JSON互換、Noneは除外）
