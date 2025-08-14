@@ -125,9 +125,9 @@ class TestMainApi:
 
     """
     Feature: エントリー追加API
-        Scenario: 必須項目dateが不足している場合は422エラーとなる
+        Scenario: 必須項目record_dateが不足している場合は422エラーとなる
             Given: 実行可能なAPIクライアントがある
-            When:  必須項目dateが欠落したデータで'/entries'にPOSTする
+            When:  必須項目record_dateが欠落したデータで'/entries'にPOSTする
             Then:  レスポンスのステータスコードは422である
             And:   レスポンスボディにバリデーションエラーが含まれる
     """
