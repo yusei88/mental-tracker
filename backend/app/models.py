@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator, Field, StrictInt, StrictFloat
+from pydantic import BaseModel, field_serializer, field_validator, Field, StrictInt, StrictFloat
 from datetime import date
 from typing import Optional
 
@@ -30,15 +30,13 @@ class Entry(BaseModel):
         json_schema_extra={"example": "今日はよく眠れた"}
     )
 
-    @staticmethod
-    def _serialize_date(v: date) -> str:
-        return v.isoformat()
-
-    from pydantic import field_serializer
+    model_config = {
+        "extra": "forbid"
+    }
 
     @field_serializer('record_date')
-    def serialize_record_date(self, v, _info):
-        return self._serialize_date(v)
+    def serialize_record_date(self, v:date) -> str:
+        return v.isoformat()
 
     @field_validator('mood_score')
     def validate_mood_score(cls, v):
