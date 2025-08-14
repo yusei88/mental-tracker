@@ -1,5 +1,7 @@
 # MindTrack — MVP
 
+[![codecov](https://codecov.io/gh/yusei88/mental-tracker/branch/main/graph/badge.svg)](https://codecov.io/gh/yusei88/mental-tracker)
+
 ## 概要
 
 **MindTrack** は、日々の気分スコアや睡眠時間、メモを記録し、シンプルな機械学習モデルで翌日の気分スコアを予測する Web アプリケーションです。  
@@ -74,9 +76,25 @@ python -m venv venv
 source venv/bin/activate  # Windowsは venv\Scripts\activate
 pip install -r requirements.txt
 # 環境変数にMongoDB接続文字列を設定
-export MONGODB_URI="mongodb+srv://<username>:<password>@<cluster>.mongodb.net/mindtrack"
-uvicorn main:app --reload
+export DATABASE_URL="mongodb+srv://<username>:<password>@<cluster>.mongodb.net/mindtrack"
+uvicorn app.main:app --reload
 ```
+
+#### テスト実行
+
+```bash
+cd backend
+# 開発用依存関係をインストール
+pip install -r requirements-dev.txt
+# テストとカバレッジレポートを実行
+./test.sh
+```
+
+#### CI/CD
+
+- **GitHub Actions**: PR作成・更新時に自動的にテストが実行されます
+- **カバレッジレポート**: PR内にテストカバレッジが表示されます
+- **対象パス**: `backend/` 配下のファイル変更時にCIが実行されます
 
 ### 2. フロントエンド
 

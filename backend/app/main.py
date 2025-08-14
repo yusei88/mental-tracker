@@ -16,7 +16,12 @@ load_dotenv()
 # logger作成
 logger = getLogger(__name__)
 
-# MongoDB接続
+# MongoDB接続設定
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    logger.error("[DEBUG] DATABASE_URLが未設定です。環境変数を設定してください。")
+    exit(1)
+MONGO_URI = DATABASE_URL
 
 
 @asynccontextmanager
@@ -26,11 +31,6 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         app.state.mongo.close()  # 終了時にクローズ
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    logger.error("[DEBUG] DATABASE_URLが未設定です。環境変数を設定してください。")
-    exit(1)
-MONGO_URI = DATABASE_URL
 
 app = FastAPI(lifespan=lifespan)
 
