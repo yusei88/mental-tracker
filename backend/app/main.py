@@ -8,10 +8,15 @@ from dotenv import load_dotenv
 from .models import Entry, EntryResponse
 from .constants import DB
 
+
 load_dotenv()
 
 # MongoDB接続
-MONGO_URI = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    print("[DEBUG] DATABASE_URLが未設定です。環境変数を設定してください。")
+    exit(1)
+MONGO_URI = DATABASE_URL
 
 app = FastAPI()
 
