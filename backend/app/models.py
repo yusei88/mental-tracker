@@ -35,7 +35,7 @@ class Entry(BaseModel):
     }
 
     @field_serializer('record_date')
-    def serialize_record_date(self, v:date) -> str:
+    def serialize_record_date(self, v: date) -> str:
         return v.isoformat()
 
     @field_validator('mood_score')
