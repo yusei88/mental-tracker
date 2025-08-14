@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator, Field
+from pydantic import BaseModel, field_validator, Field, StrictInt, StrictFloat
 from datetime import date
 from typing import Optional
 
@@ -13,12 +13,15 @@ class Entry(BaseModel):
         description="記録日（必須、YYYY-MM-DD形式）",
         json_schema_extra={"example": "2025-08-14"}
     )
-    mood_score: int = Field(
+    mood_score: StrictInt = Field(
         description="メンタルスコア（必須、0〜5の整数）",
+        ge=0,
+        le=5,
         json_schema_extra={"example": 4}
     )
-    sleep_hours: float = Field(
+    sleep_hours: StrictFloat = Field(
         description="睡眠時間（必須、0以上の小数）",
+        ge=0,
         json_schema_extra={"example": 6.5}
     )
     memo: Optional[str] = Field(
