@@ -83,7 +83,7 @@ class TestMainApi:
 
     def test_add_entry_success(self, client, dummy_entry):
         # dummy_entryをdict化してPOST
-        entry_dict = dummy_entry.dict()
+        entry_dict = dummy_entry.model_dump()
         # idはAPIのPOSTでは不要なので除外
         entry_dict.pop("id", None)
         # dateはISO文字列に変換
@@ -112,7 +112,7 @@ class TestMainApi:
     """
 
     def test_add_entry_missing_date(self, client, dummy_entry):
-        entry_dict = dummy_entry.dict()
+        entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict.pop("record_date", None)
@@ -132,7 +132,7 @@ class TestMainApi:
     """
 
     def test_add_entry_missing_mood_score(self, client, dummy_entry):
-        entry_dict = dummy_entry.dict()
+        entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict.pop("mood_score", None)
@@ -152,7 +152,7 @@ class TestMainApi:
     """
 
     def test_add_entry_missing_sleep_hours(self, client, dummy_entry):
-        entry_dict = dummy_entry.dict()
+        entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict.pop("sleep_hours", None)
@@ -172,7 +172,7 @@ class TestMainApi:
     """
 
     def test_add_entry_invalid_mood_score(self, client, dummy_entry):
-        entry_dict = dummy_entry.dict()
+        entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["mood_score"] = -1
@@ -192,7 +192,7 @@ class TestMainApi:
     """
 
     def test_add_entry_mood_score_too_high(self, client, dummy_entry):
-        entry_dict = dummy_entry.dict()
+        entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["mood_score"] = 6
@@ -212,7 +212,7 @@ class TestMainApi:
     """
 
     def test_add_entry_sleep_hours_negative(self, client, dummy_entry):
-        entry_dict = dummy_entry.dict()
+        entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["sleep_hours"] = -1
@@ -232,7 +232,7 @@ class TestMainApi:
     """
 
     def test_add_entry_invalid_sleep_hours_type(self, client, dummy_entry):
-        entry_dict = dummy_entry.dict()
+        entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["sleep_hours"] = "eight"
@@ -252,7 +252,7 @@ class TestMainApi:
     """
 
     def test_add_entry_empty_memo(self, client, dummy_entry):
-        entry_dict = dummy_entry.dict()
+        entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["memo"] = ""

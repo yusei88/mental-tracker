@@ -7,31 +7,35 @@ class Entry(BaseModel):
     id: Optional[str] = Field(
         default=None,
         description="エントリーID（自動生成、任意）",
-        example="dummy_id"
+        json_schema_extra={"example": "dummy_id"}
     )
     record_date: date = Field(
         description="記録日（必須、YYYY-MM-DD形式）",
-        example="2025-08-14"
+        json_schema_extra={"example": "2025-08-14"}
     )
     mood_score: int = Field(
         description="メンタルスコア（必須、0〜5の整数）",
-        example=4
+        json_schema_extra={"example": 4}
     )
     sleep_hours: float = Field(
         description="睡眠時間（必須、0以上の小数）",
-        example=6.5
+        json_schema_extra={"example": 6.5}
     )
     memo: Optional[str] = Field(
         default=None,
         description="メモ（任意、空文字可）",
-        example="今日はよく眠れた"
+        json_schema_extra={"example": "今日はよく眠れた"}
     )
 
-    model_config = {
-        "json_encoders": {
-            date: lambda v: v.isoformat()
-        }
-    }
+    @staticmethod
+    def _serialize_date(v: date) -> str:
+        return v.isoformat()
+
+    from pydantic import field_serializer
+
+    @field_serializer('record_date')
+    def serialize_record_date(self, v, _info):
+        return self._serialize_date(v)
 
     @field_validator('mood_score')
     def validate_mood_score(cls, v):
