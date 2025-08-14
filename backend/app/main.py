@@ -1,12 +1,20 @@
 import os
-from fastapi import FastAPI
+import json
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
+from .models import Entry, EntryResponse
+from .constants import DB
+
 load_dotenv()
 
+# MongoDB接続
+MONGO_URI = os.getenv("DATABASE_URL")
+
 app = FastAPI()
+
 
 @app.get("/")
 async def root():
@@ -14,14 +22,16 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.post("/add")
-async def add_item(item: str):
-    print(f"{type(item)=}, {item=}")
-    client = MongoClient(os.getenv("DATABASE_URL"))
-    db = client.test
-    collection = db.test
-    collection.insert_one({"item": item})
-    return {"message": "Item added successfully"}
+@app.post("/entries")
+async def add_entry(entry: Entry):
+    with MongoClient(MONGO_URI) as client:
+        entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
+        # model_dump_jsonでdateをISO文字列化し、dict化して挿入
+        entry_dict = json.loads(entry.model_dump_json())
+        result = entries_collection.insert_one(entry_dict)
+        entry.id = str(result.inserted_id)
+        return EntryResponse(status="success", entry=entry)
+
 
 app.add_middleware(
     CORSMiddleware,
