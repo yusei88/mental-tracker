@@ -53,7 +53,7 @@ jobs:
               uses: codecov/codecov-action@v5
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
-                  file: ./backend/coverage.xml
+                  files: ./backend/coverage.xml
                   directory: ./backend
                   fail_ci_if_error: false
                   verbose: true
