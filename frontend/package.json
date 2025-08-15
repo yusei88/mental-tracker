@@ -12,7 +12,6 @@
         "generate:api": "npx openapi-typescript ../openapi/schema.json --output src/api/schema.ts"
     },
     "dependencies": {
-        "npx": "^3.0.0",
         "vue": "^3.5.18"
     },
     "devDependencies": {
