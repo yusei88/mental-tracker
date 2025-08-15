@@ -16,7 +16,18 @@ async function fetchApi<T>(path: APIPath, options?: RequestInit): Promise<T> {
     const res = await fetch(`${API_BASE_URL}${path}`, options);
     if (!res.ok) {
         const error = await res.json().catch(() => ({}));
-        throw error;
+        let errorBody;
+        try {
+            errorBody = await res.json();
+        } catch (jsonErr) {
+            const rawText = await res.text();
+            errorBody = {
+                status: res.status,
+                statusText: res.statusText,
+                body: rawText,
+            };
+        }
+        throw errorBody;
     }
     return res.json();
 }
