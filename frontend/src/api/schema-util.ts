@@ -2,6 +2,7 @@
 export type APIPath = keyof import("./schema").paths;
 // schema.ts から型ユーティリティを生成
 import type { components, operations } from "./schema";
+// schema.ts から型ユーティリティを生成
 
 // Entry入力型
 export type EntryInput = components["schemas"]["Entry-Input"];
