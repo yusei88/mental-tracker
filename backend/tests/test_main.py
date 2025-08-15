@@ -10,7 +10,7 @@ FastAPIのエンドポイントをテストするためのクラス
 
 class TestMainApi:
     # 定数
-    DUMMY_ID = "dummy_id"
+    DUMMY_ID = "507f1f77bcf86cd799439011"  # 有効なObjectId形式
     FIXED_DATE = date(2025, 8, 14)
 
     def dummy_entry_as_doc(self):
@@ -72,6 +72,16 @@ class TestMainApi:
                     raise PyMongoError("Database connection failed")
                 else:
                     return [test_instance.dummy_entry_as_doc()]
+
+            def find_one_and_delete(self, query):
+                if self.mock_type == "error":
+                    from pymongo.errors import PyMongoError
+                    raise PyMongoError("Database connection failed")
+                elif self.mock_type == "not_found":
+                    return None
+                else:
+                    # 正常な削除の場合、削除されたドキュメントを返す
+                    return test_instance.dummy_entry_as_doc()
 
         class MockDB:
             def __init__(self, mock_type="normal"):
@@ -384,6 +394,114 @@ class TestMainApi:
         resp_json = response.json()
         assert "detail" in resp_json
         assert "failed to retrieve entries" in resp_json["detail"]
+
+    # エントリー削除APIのテスト
+    """
+    Feature: エントリー削除API
+        Scenario: エントリーの削除に成功する
+            Given: 実行可能なAPIクライアントがある
+            When:  有効なIDで'/entries'にDELETEリクエストを実行する
+            Then:  レスポンスのステータスコードは200である
+            And:   レスポンスボディのキー'status'のバリューに'success'が含まれる
+            And:   レスポンスボディのキー'entry'のバリューに削除されたエントリー情報が含まれる
+    """
+
+    def test_delete_entry_success(self, client):
+        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        assert response.status_code == 200
+        resp_json = response.json()
+        assert resp_json.get("status") == "success"
+        # entry内容を厳密に検証
+        entry = resp_json.get("entry")
+        assert entry is not None
+        assert entry["id"] == self.DUMMY_ID
+        assert entry["record_date"] == self.FIXED_DATE.isoformat()
+        assert entry["mood_score"] == 4
+        assert entry["sleep_hours"] == 6.5
+        assert entry["memo"] == "今日はよく眠れた"
+
+    """
+    Feature: エントリー削除API
+        Scenario: IDパラメータが欠落している場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  IDパラメータなしで'/entries'にDELETEリクエストを実行する
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_delete_entry_missing_id(self, client):
+        response = client.delete("/entries")
+        assert response.status_code == 422
+        resp_json = response.json()
+        assert "detail" in resp_json
+
+    """
+    Feature: エントリー削除API
+        Scenario: 空のIDパラメータの場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  空のIDパラメータで'/entries'にDELETEリクエストを実行する
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_delete_entry_empty_id(self, client):
+        response = client.delete("/entries?id=")
+        assert response.status_code == 422
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "id parameter is required" in resp_json["detail"]
+
+    """
+    Feature: エントリー削除API
+        Scenario: 不正なID形式の場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  不正なID形式で'/entries'にDELETEリクエストを実行する
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_delete_entry_invalid_id_format(self, client):
+        response = client.delete("/entries?id=invalid_id")
+        assert response.status_code == 422
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "invalid id format" in resp_json["detail"]
+
+    """
+    Feature: エントリー削除API
+        Scenario: 存在しないIDの場合は404エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  存在しないIDで'/entries'にDELETEリクエストを実行する
+            Then:  レスポンスのステータスコードは404である
+            And:   レスポンスボディにエラーメッセージが含まれる
+    """
+
+    def test_delete_entry_not_found(self, client):
+        client = self._create_client("not_found")
+        # 正しいObjectId形式だが存在しないID
+        valid_object_id = "507f1f77bcf86cd799439011"
+        response = client.delete(f"/entries?id={valid_object_id}")
+        assert response.status_code == 404
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "entry not found" in resp_json["detail"]
+
+    """
+    Feature: エントリー削除API
+        Scenario: データベースエラーが発生した場合は500エラーを返す
+            Given: 実行可能なAPIクライアントがある
+            When:  データベースエラーが発生する状況で'/entries'にDELETEリクエストを実行する
+            Then:  レスポンスのステータスコードは500である
+            And:   レスポンスボディにエラーメッセージが含まれる
+    """
+
+    def test_delete_entry_database_error(self, client):
+        client = self._create_client("error")
+        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        assert response.status_code == 500
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "failed to delete entry" in resp_json["detail"]
 
 
 class TestAppStartup:
