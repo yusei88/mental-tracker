@@ -1,5 +1,7 @@
 import pytest
 from datetime import date
+import importlib
+import sys
 
 """
 FastAPIのエンドポイントをテストするためのクラス
@@ -55,8 +57,12 @@ class TestMainApi:
                 self.mock_type = mock_type
 
             def insert_one(self, entry):
-                # 実際のDB挿入は不要。inserted_idのみ返す
-                return MockInsertOneResult()
+                if self.mock_type == "error":
+                    from pymongo.errors import PyMongoError
+                    raise PyMongoError("Database connection failed")
+                else:
+                    # 実際のDB挿入は不要。inserted_idのみ返す
+                    return MockInsertOneResult()
 
             def find(self, query):
                 if self.mock_type == "empty":
@@ -298,6 +304,26 @@ class TestMainApi:
         resp_json = response.json()
         assert "error" in resp_json.get(
             "detail", "") or "sleep_hours" in str(resp_json)
+    
+    """
+    Feature: エントリー追加API
+    Scenario: データベースエラーが発生した場合は500エラーを返す
+            Given: 実行可能なAPIクライアントがある
+            When:  sleep_hoursが文字列で'/entries'にPOSTする
+            Then:  レスポンスのステータスコードは500である
+            And:   レスポンスボディにエラーメッセージが含まれる
+    """
+
+    def test_add_entry_database_error(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        client = self._create_client("error")
+        response = client.post("/entries", json=entry_dict)
+        assert response.status_code == 500
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "failed to insert entry" in resp_json["detail"]
 
     # エントリー取得APIのテスト
     """
@@ -358,3 +384,26 @@ class TestMainApi:
         resp_json = response.json()
         assert "detail" in resp_json
         assert "failed to retrieve entries" in resp_json["detail"]
+
+
+class TestAppStartup:
+    def test_app_ci_env(self, monkeypatch):
+        # ENV=ciの場合はMongoDB接続しない
+        monkeypatch.setenv("ENV", "ci")
+        # モジュール再読み込みでapp生成
+        sys.modules.pop("app.main", None)  # キャッシュクリア
+        mod = importlib.import_module("app.main")
+        assert hasattr(mod, "app")
+        # app.summaryにCIという文字列が含まれる
+        assert "WithCI" in getattr(mod.app, "summary", "")
+
+    def test_app_non_ci_env(self, monkeypatch):
+        # ENV=developmentの場合はMongoDB接続あり
+        monkeypatch.setenv("ENV", "development")
+        monkeypatch.setenv("MONGODB_URI", "mongodb://dummy")
+        # モジュール再読み込みでapp生成
+        sys.modules.pop("app.main", None)  # キャッシュクリア
+        mod = importlib.import_module("app.main")
+        assert hasattr(mod, "app")
+        # app.summaryにCIという文字列が含まれない
+        assert "WithCI" not in getattr(mod.app, "summary", "")

@@ -4,35 +4,32 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-from logging import getLogger
 from dotenv import load_dotenv
 
 from .models import Entry, EntryResponse, EntriesResponse
 from .constants import DB
 
-
+# 環境変数の読み込み
 load_dotenv()
 
-# logger作成
-logger = getLogger(__name__)
+# 環境確認とDB接続URI取得
+env = os.getenv("ENV", "development")
+if env == "ci":
+    # CI環境ではDB接続なし
+    print("Running in CI mode - MongoDB connection skipped.")
+    app = FastAPI(summary="KokoroNotoAPI_WithCI")
+else:
+    mongo_uri = os.getenv("MONGODB_URI")
 
-# MongoDB接続設定
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    logger.error("[DEBUG] DATABASE_URLが未設定です。環境変数を設定してください。")
-    exit(1)
-MONGO_URI = DATABASE_URL
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        app.state.mongo = MongoClient(mongo_uri)  # 起動時に1回だけ生成
+        try:
+            yield
+        finally:
+            app.state.mongo.close()  # 終了時にクローズ
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    app.state.mongo = MongoClient(MONGO_URI)  # 起動時に1回だけ生成
-    try:
-        yield
-    finally:
-        app.state.mongo.close()  # 終了時にクローズ
-
-app = FastAPI(lifespan=lifespan)
+    app = FastAPI(lifespan=lifespan, summary="KokoroNotoAPI")
 
 
 @app.get("/")
@@ -58,11 +55,9 @@ async def get_entries(request: Request) -> EntriesResponse:
 async def add_entry(entry: Entry, request: Request) -> EntryResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
-    # dict化して挿入（JSON互換、Noneは除外）
     # dict化して挿入（JSON互換、Noneは除外、idは必ず除外）
     entry_dict = entry.model_dump(mode="json", exclude_none=True)
-    if "id" in entry_dict:
-        del entry_dict["id"]
+
     try:
         result = entries_collection.insert_one(entry_dict)
     except PyMongoError as err:
