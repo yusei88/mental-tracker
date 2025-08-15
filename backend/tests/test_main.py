@@ -1,5 +1,7 @@
 import pytest
 from datetime import date
+import importlib
+import sys
 
 """
 FastAPIのエンドポイントをテストするためのクラス
@@ -358,3 +360,40 @@ class TestMainApi:
         resp_json = response.json()
         assert "detail" in resp_json
         assert "failed to retrieve entries" in resp_json["detail"]
+
+    # ルートエンドポイントのユニットテスト
+    def test_root_endpoint(self, client):
+        """
+        Feature: ルートエンドポイントAPI
+            Scenario: ルートエンドポイントにGETリクエストを送信すると200とHello Worldが返る
+                Given: 実行可能なAPIクライアントがある
+                When: ルートエンドポイントにGETリクエストを送信する
+                Then: レスポンスのステータスコードは200である
+                And: レスポンスの'message'に'Hello World'が含まれる
+        """
+        response = client.get("/")
+        assert response.status_code == 200
+        assert response.json() == {"message": "Hello World"}
+
+
+class TestAppStartup:
+    def test_app_ci_env(self, monkeypatch):
+        # ENV=ciの場合はMongoDB接続しない
+        monkeypatch.setenv("ENV", "ci")
+        # モジュール再読み込みでapp生成
+        sys.modules.pop("app.main", None)  # キャッシュクリア
+        mod = importlib.import_module("app.main")
+        assert hasattr(mod, "app")
+        # app.summaryにCIという文字列が含まれる
+        assert "WithCI" in getattr(mod.app, "summary", "")
+
+    def test_app_non_ci_env(self, monkeypatch):
+        # ENV=developmentの場合はMongoDB接続あり
+        monkeypatch.setenv("ENV", "development")
+        monkeypatch.setenv("MONGODB_URI", "mongodb://dummy")
+        # モジュール再読み込みでapp生成
+        sys.modules.pop("app.main", None)  # キャッシュクリア
+        mod = importlib.import_module("app.main")
+        assert hasattr(mod, "app")
+        # app.summaryにCIという文字列が含まれない
+        assert "WithCI" not in getattr(mod.app, "summary", "")
