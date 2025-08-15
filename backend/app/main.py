@@ -27,7 +27,8 @@ else:
             yield
         finally:
             app.state.mongo.close()  # 終了時にクローズ
-    app = FastAPI(lifespan=lifespan)
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
