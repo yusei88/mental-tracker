@@ -17,6 +17,7 @@ env = os.getenv("ENV", "development")
 if env == "ci":
     # CI環境ではDB接続なし
     print("Running in CI mode - MongoDB connection skipped.")
+    app = FastAPI()
 else:
     mongo_uri = os.getenv("MONGODB_URI")
 
@@ -28,7 +29,7 @@ else:
         finally:
             app.state.mongo.close()  # 終了時にクローズ
 
-app = FastAPI(lifespan=lifespan)
+    app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
