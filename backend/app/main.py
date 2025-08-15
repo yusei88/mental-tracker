@@ -57,8 +57,6 @@ async def add_entry(entry: Entry, request: Request) -> EntryResponse:
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     # dict化して挿入（JSON互換、Noneは除外、idは必ず除外）
     entry_dict = entry.model_dump(mode="json", exclude_none=True)
-    if "id" in entry_dict:
-        del entry_dict["id"]
 
     try:
         result = entries_collection.insert_one(entry_dict)
