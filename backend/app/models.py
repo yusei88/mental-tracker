@@ -1,11 +1,12 @@
 from pydantic import BaseModel, field_serializer, field_validator, Field, StrictInt, StrictFloat
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 
 
 class Entry(BaseModel):
     id: Optional[str] = Field(
         default=None,
+        validation_alias="_id",
         description="エントリーID（自動生成、任意）",
         json_schema_extra={"example": "dummy_id"}
     )
@@ -31,7 +32,8 @@ class Entry(BaseModel):
     )
 
     model_config = {
-        "extra": "forbid"
+        "extra": "forbid",
+        "populate_by_name": True
     }
 
     @field_serializer('record_date')
@@ -60,7 +62,20 @@ class Entry(BaseModel):
             raise ValueError('sleep_hoursは0以上である必要があります')
         return v
 
+    # MongoDBドキュメント形式(dict)で返す
+    def to_mongo_dict(self):
+        d = self.model_dump(by_alias=True)
+        # 念のためrecord_dateをISO文字列化
+        if isinstance(d["record_date"], date):
+            d["record_date"] = d["record_date"].isoformat()
+        return d
+
 
 class EntryResponse(BaseModel):
     status: str
     entry: Entry
+
+
+class EntriesResponse(BaseModel):
+    status: str
+    entries: List[Entry]

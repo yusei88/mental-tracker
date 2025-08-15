@@ -11,7 +11,18 @@ class TestMainApi:
     DUMMY_ID = "dummy_id"
     FIXED_DATE = date(2025, 8, 14)
 
-    # fixture
+    def dummy_entry_as_doc(self):
+        """dummy_entryをMongoDB document形式に変換"""
+        from app.models import Entry
+        dummy = Entry(
+            id=self.DUMMY_ID,
+            record_date=self.FIXED_DATE,
+            mood_score=4,
+            sleep_hours=6.5,
+            memo="今日はよく眠れた"
+        )
+        return dummy.to_mongo_dict()
+
     @pytest.fixture
     def dummy_entry(self):
         from app.models import Entry
@@ -25,6 +36,9 @@ class TestMainApi:
 
     @pytest.fixture
     def client(self, monkeypatch):
+        return self._create_client("normal")
+
+    def _create_client(self, mock_type="normal"):
         from fastapi.testclient import TestClient
         from app.main import app
 
@@ -33,16 +47,37 @@ class TestMainApi:
             def inserted_id(self):
                 return TestMainApi.DUMMY_ID
 
+        # ダミーデータを生成
+        test_instance = self
+
         class MockCollection:
+            def __init__(self, mock_type="normal"):
+                self.mock_type = mock_type
+
             def insert_one(self, entry):
                 # 実際のDB挿入は不要。inserted_idのみ返す
                 return MockInsertOneResult()
 
+            def find(self, query):
+                if self.mock_type == "empty":
+                    return []
+                elif self.mock_type == "error":
+                    from pymongo.errors import PyMongoError
+                    raise PyMongoError("Database connection failed")
+                else:
+                    return [test_instance.dummy_entry_as_doc()]
+
         class MockDB:
+            def __init__(self, mock_type="normal"):
+                self.mock_type = mock_type
+
             def __getitem__(self, name):
-                return MockCollection()
+                return MockCollection(self.mock_type)
 
         class MockClient:
+            def __init__(self, mock_type="normal"):
+                self.mock_type = mock_type
+
             def __enter__(self):
                 return self
 
@@ -50,10 +85,10 @@ class TestMainApi:
                 pass
 
             def __getitem__(self, name):
-                return MockDB()
+                return MockDB(self.mock_type)
 
         # lifespan利用のため、app起動前にstate.mongoへ直接MockClientをセット
-        app.state.mongo = MockClient()
+        app.state.mongo = MockClient(mock_type)
         return TestClient(app)
 
     # サンプルテスト
@@ -263,3 +298,63 @@ class TestMainApi:
         resp_json = response.json()
         assert "error" in resp_json.get(
             "detail", "") or "sleep_hours" in str(resp_json)
+
+    # エントリー取得APIのテスト
+    """
+    Feature: エントリー取得API
+        Scenario: エントリーの一覧取得に成功する
+            Given: 実行可能なAPIクライアントがある
+            When:  '/entries'にGETリクエストを実行する
+            Then:  レスポンスのステータスコードは200である
+            And:   レスポンスボディのキー'status'のバリューに'success'が含まれる
+            And:   レスポンスボディのキー'entries'のバリューが配列である
+    """
+
+    def test_get_entries_success(self, client):
+        response = client.get("/entries")
+        assert response.status_code == 200
+        resp_json = response.json()
+        assert resp_json["status"] == "success"
+        assert "entries" in resp_json
+        assert isinstance(resp_json["entries"], list)
+        if len(resp_json["entries"]) > 0:
+            entry = resp_json["entries"][0]
+            assert "id" in entry
+            assert "record_date" in entry
+            assert "mood_score" in entry
+            assert "sleep_hours" in entry
+            assert "memo" in entry
+
+    """
+    Feature: エントリー取得API
+        Scenario: エントリーが0件の場合は空配列を返す
+            Given: 実行可能なAPIクライアントがある
+            When:  '/entries'にGETリクエストを実行する（DB内に0件）
+            Then:  レスポンスのステータスコードは200である
+            And:   レスポンスボディのキー'status'のバリューに'success'が含まれる
+            And:   レスポンスボディのキー'entries'のバリューが空配列である
+    """
+
+    def test_get_entries_empty(self, monkeypatch):
+        client = self._create_client("empty")
+        response = client.get("/entries")
+        assert response.status_code == 200
+        resp_json = response.json()
+        assert resp_json["status"] == "success"
+        assert resp_json["entries"] == []
+
+    """
+    Feature: エントリー取得API
+        Scenario: データベースエラーが発生した場合は500エラーを返す
+            Given: 実行可能なAPIクライアントがある
+            When:  '/entries'にGETリクエストを実行する（DB接続エラー）
+            Then:  レスポンスのステータスコードは500である
+    """
+
+    def test_get_entries_database_error(self, monkeypatch):
+        client = self._create_client("error")
+        response = client.get("/entries")
+        assert response.status_code == 500
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "failed to retrieve entries" in resp_json["detail"]
