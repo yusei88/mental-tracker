@@ -11,18 +11,6 @@ class TestMainApi:
     DUMMY_ID = "dummy_id"
     FIXED_DATE = date(2025, 8, 14)
 
-    # fixture
-    @pytest.fixture
-    def dummy_entry(self):
-        from app.models import Entry
-        return Entry(
-            id=self.DUMMY_ID,
-            record_date=self.FIXED_DATE,
-            mood_score=4,
-            sleep_hours=6.5,
-            memo="今日はよく眠れた"
-        )
-    
     def dummy_entry_as_doc(self):
         """dummy_entryをMongoDB document形式に変換"""
         from app.models import Entry
@@ -33,37 +21,43 @@ class TestMainApi:
             sleep_hours=6.5,
             memo="今日はよく眠れた"
         )
-        return {
-            "_id": dummy.id,
-            "record_date": dummy.record_date.isoformat(),
-            "mood_score": dummy.mood_score,
-            "sleep_hours": dummy.sleep_hours,
-            "memo": dummy.memo
-        }
+        return dummy.to_mongo_dict()
+
+    @pytest.fixture
+    def dummy_entry(self):
+        from app.models import Entry
+        return Entry(
+            id=self.DUMMY_ID,
+            record_date=self.FIXED_DATE,
+            mood_score=4,
+            sleep_hours=6.5,
+            memo="今日はよく眠れた"
+        )
 
     @pytest.fixture
     def client(self, monkeypatch):
         return self._create_client("normal")
-    
+
     def _create_client(self, mock_type="normal"):
         from fastapi.testclient import TestClient
         from app.main import app
-
-        test_instance = self  # MockCollectionがselfにアクセスできるように
 
         class MockInsertOneResult:
             @property
             def inserted_id(self):
                 return TestMainApi.DUMMY_ID
 
+        # ダミーデータを生成
+        test_instance = self
+
         class MockCollection:
             def __init__(self, mock_type="normal"):
                 self.mock_type = mock_type
-                
+
             def insert_one(self, entry):
                 # 実際のDB挿入は不要。inserted_idのみ返す
                 return MockInsertOneResult()
-            
+
             def find(self, query):
                 if self.mock_type == "empty":
                     return []
@@ -71,20 +65,19 @@ class TestMainApi:
                     from pymongo.errors import PyMongoError
                     raise PyMongoError("Database connection failed")
                 else:
-                    # dummy_entryメソッドを使用したサンプルデータを返すモック
                     return [test_instance.dummy_entry_as_doc()]
 
         class MockDB:
             def __init__(self, mock_type="normal"):
                 self.mock_type = mock_type
-                
+
             def __getitem__(self, name):
                 return MockCollection(self.mock_type)
 
         class MockClient:
             def __init__(self, mock_type="normal"):
                 self.mock_type = mock_type
-                
+
             def __enter__(self):
                 return self
 

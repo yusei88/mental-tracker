@@ -62,6 +62,14 @@ class Entry(BaseModel):
             raise ValueError('sleep_hoursは0以上である必要があります')
         return v
 
+    # MongoDBドキュメント形式(dict)で返す
+    def to_mongo_dict(self):
+        d = self.model_dump(by_alias=True)
+        # 念のためrecord_dateをISO文字列化
+        if isinstance(d["record_date"], date):
+            d["record_date"] = d["record_date"].isoformat()
+        return d
+
 
 class EntryResponse(BaseModel):
     status: str
