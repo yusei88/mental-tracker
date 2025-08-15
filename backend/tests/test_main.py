@@ -22,6 +22,24 @@ class TestMainApi:
             sleep_hours=6.5,
             memo="今日はよく眠れた"
         )
+    
+    def dummy_entry_as_doc(self):
+        """dummy_entryをMongoDB document形式に変換"""
+        from app.models import Entry
+        dummy = Entry(
+            id=self.DUMMY_ID,
+            record_date=self.FIXED_DATE,
+            mood_score=4,
+            sleep_hours=6.5,
+            memo="今日はよく眠れた"
+        )
+        return {
+            "_id": dummy.id,
+            "record_date": dummy.record_date.isoformat(),
+            "mood_score": dummy.mood_score,
+            "sleep_hours": dummy.sleep_hours,
+            "memo": dummy.memo
+        }
 
     @pytest.fixture
     def client(self, monkeypatch):
@@ -30,6 +48,8 @@ class TestMainApi:
     def _create_client(self, mock_type="normal"):
         from fastapi.testclient import TestClient
         from app.main import app
+
+        test_instance = self  # MockCollectionがselfにアクセスできるように
 
         class MockInsertOneResult:
             @property
@@ -51,16 +71,8 @@ class TestMainApi:
                     from pymongo.errors import PyMongoError
                     raise PyMongoError("Database connection failed")
                 else:
-                    # サンプルデータを返すモック
-                    return [
-                        {
-                            "_id": "64f8b...",
-                            "record_date": "2025-08-14",
-                            "mood_score": 4,
-                            "sleep_hours": 7,
-                            "memo": "今日は穏やかだった"
-                        }
-                    ]
+                    # dummy_entryメソッドを使用したサンプルデータを返すモック
+                    return [test_instance.dummy_entry_as_doc()]
 
         class MockDB:
             def __init__(self, mock_type="normal"):
