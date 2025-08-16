@@ -10,7 +10,7 @@ FastAPIのエンドポイントをテストするためのクラス
 
 class TestMainApi:
     # 定数
-    DUMMY_ID = "dummy_id"
+    DUMMY_ID = "507f1f77bcf86cd799439011"  # 有効なObjectID形式
     FIXED_DATE = date(2025, 8, 14)
 
     def dummy_entry_as_doc(self):
@@ -72,6 +72,26 @@ class TestMainApi:
                     raise PyMongoError("Database connection failed")
                 else:
                     return [test_instance.dummy_entry_as_doc()]
+
+            def find_one(self, query):
+                if self.mock_type == "error":
+                    from pymongo.errors import PyMongoError
+                    raise PyMongoError("Database connection failed")
+                elif self.mock_type == "not_found":
+                    return None
+                else:
+                    return test_instance.dummy_entry_as_doc()
+
+            def delete_one(self, query):
+                if self.mock_type == "error":
+                    from pymongo.errors import PyMongoError
+                    raise PyMongoError("Database connection failed")
+                else:
+                    class MockDeleteResult:
+                        @property
+                        def deleted_count(self):
+                            return 1
+                    return MockDeleteResult()
 
         class MockDB:
             def __init__(self, mock_type="normal"):
@@ -384,6 +404,89 @@ class TestMainApi:
         resp_json = response.json()
         assert "detail" in resp_json
         assert "failed to retrieve entries" in resp_json["detail"]
+
+    """
+    Feature: エントリー削除API
+        Scenario: 正常なIDでエントリーを削除する場合は削除後の全データを返す
+            Given: 実行可能なAPIクライアントがある
+            When:  有効なIDで'/entries'にDELETEリクエストを実行する
+            Then:  レスポンスのステータスコードは200である
+            And:   レスポンスボディのキー'status'のバリューに'success'が含まれる
+            And:   レスポンスボディのキー'entries'のバリューが削除後のデータである
+    """
+
+    def test_delete_entry_success(self, client):
+        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        assert response.status_code == 200
+        resp_json = response.json()
+        assert resp_json["status"] == "success"
+        assert "entries" in resp_json
+        # 削除後なので空の配列（削除されたもの以外が残る）
+        assert isinstance(resp_json["entries"], list)
+
+    """
+    Feature: エントリー削除API
+        Scenario: 存在しないIDでエントリーを削除しようとした場合は404エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  存在しないIDで'/entries'にDELETEリクエストを実行する
+            Then:  レスポンスのステータスコードは404である
+            And:   レスポンスボディにエラーメッセージが含まれる
+    """
+
+    def test_delete_entry_not_found(self, monkeypatch):
+        client = self._create_client("not_found")
+        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        assert response.status_code == 404
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "Entry not found" in resp_json["detail"]
+
+    """
+    Feature: エントリー削除API
+        Scenario: 無効なIDフォーマットでエントリーを削除しようとした場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  無効なIDフォーマットで'/entries'にDELETEリクエストを実行する
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_delete_entry_invalid_id_format(self, client):
+        response = client.delete("/entries?id=invalid_id")
+        assert response.status_code == 422
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "Invalid entry ID format" in resp_json["detail"]
+
+    """
+    Feature: エントリー削除API
+        Scenario: IDパラメーターが指定されていない場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  IDパラメーターなしで'/entries'にDELETEリクエストを実行する
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_delete_entry_missing_id(self, client):
+        response = client.delete("/entries")
+        assert response.status_code == 422
+        resp_json = response.json()
+        assert "detail" in resp_json
+
+    """
+    Feature: エントリー削除API
+        Scenario: データベースエラーが発生した場合は500エラーを返す
+            Given: 実行可能なAPIクライアントがある
+            When:  '/entries'にDELETEリクエストを実行する（DB接続エラー）
+            Then:  レスポンスのステータスコードは500である
+    """
+
+    def test_delete_entry_database_error(self, monkeypatch):
+        client = self._create_client("error")
+        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        assert response.status_code == 500
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "failed to delete entry" in resp_json["detail"]
 
 
 class TestAppStartup:
