@@ -129,6 +129,7 @@
                     },
                     "record_date": {
                         "type": "string",
+                        "format": "date",
                         "title": "Record Date",
                         "description": "\u8a18\u9332\u65e5\uff08\u5fc5\u9808\u3001YYYY-MM-DD\u5f62\u5f0f\uff09",
                         "example": "2025-08-14"
