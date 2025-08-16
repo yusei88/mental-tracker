@@ -15,19 +15,18 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
 async function fetchApi<T>(path: APIPath, options?: RequestInit): Promise<T> {
     const res = await fetch(`${API_BASE_URL}${path}`, options);
     if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        let errorBody;
+        const rawText = await res.text().catch(() => "");
+        let body: unknown = rawText;
         try {
-            errorBody = await res.json();
-        } catch (jsonErr) {
-            const rawText = await res.text();
-            errorBody = {
-                status: res.status,
-                statusText: res.statusText,
-                body: rawText,
-            };
+            body = JSON.parse(rawText);
+        } catch {
+            /* no-op */
         }
-        throw errorBody;
+        throw {
+            status: res.status,
+            statusText: res.statusText,
+            body,
+        };
     }
     return res.json();
 }
