@@ -10,7 +10,7 @@ FastAPIのエンドポイントをテストするためのクラス
 
 class TestMainApi:
     # 定数
-    DUMMY_ID = "dummy_id"
+    DUMMY_ID = "507f1f77bcf86cd799439011"  # Valid ObjectId format
     FIXED_DATE = date(2025, 8, 14)
 
     def dummy_entry_as_doc(self):
@@ -52,6 +52,10 @@ class TestMainApi:
         # ダミーデータを生成
         test_instance = self
 
+        class MockReplaceOneResult:
+            def __init__(self, matched_count=1):
+                self.matched_count = matched_count
+
         class MockCollection:
             def __init__(self, mock_type="normal"):
                 self.mock_type = mock_type
@@ -72,6 +76,15 @@ class TestMainApi:
                     raise PyMongoError("Database connection failed")
                 else:
                     return [test_instance.dummy_entry_as_doc()]
+
+            def replace_one(self, filter_dict, replacement):
+                if self.mock_type == "error":
+                    from pymongo.errors import PyMongoError
+                    raise PyMongoError("Database connection failed")
+                elif self.mock_type == "not_found":
+                    return MockReplaceOneResult(matched_count=0)
+                else:
+                    return MockReplaceOneResult(matched_count=1)
 
         class MockDB:
             def __init__(self, mock_type="normal"):
@@ -384,6 +397,130 @@ class TestMainApi:
         resp_json = response.json()
         assert "detail" in resp_json
         assert "failed to retrieve entries" in resp_json["detail"]
+
+    # エントリー更新APIのテスト
+    """
+    Feature: エントリー更新API
+        Scenario: エントリーの更新に成功する
+            Given: 実行可能なAPIクライアントがある
+            When:  有効なエントリーデータとIDで'/entries'にPUTする
+            Then:  レスポンスのステータスコードは200である
+            And:   レスポンスの'status'が'success'である
+            And:   レスポンスの'entry'に更新されたデータが含まれる
+    """
+
+    def test_update_entry_success(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        entry_dict["mood_score"] = 5  # 更新値
+        entry_dict["memo"] = "更新されたメモ"
+        
+        response = client.put(f"/entries?id={self.DUMMY_ID}", json=entry_dict)
+        assert response.status_code == 200
+        resp_json = response.json()
+        assert resp_json["status"] == "success"
+        assert resp_json["entry"]["id"] == self.DUMMY_ID
+        assert resp_json["entry"]["mood_score"] == 5
+        assert resp_json["entry"]["memo"] == "更新されたメモ"
+
+    """
+    Feature: エントリー更新API
+        Scenario: IDパラメーターが不足している場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  IDパラメーターなしで'/entries'にPUTする
+            Then:  レスポンスのステータスコードは422である
+    """
+
+    def test_update_entry_missing_id(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        
+        response = client.put("/entries", json=entry_dict)
+        assert response.status_code == 422
+
+    """
+    Feature: エントリー更新API
+        Scenario: 無効なID形式の場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  無効なID形式で'/entries'にPUTする
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにエラーメッセージが含まれる
+    """
+
+    def test_update_entry_invalid_id_format(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        
+        response = client.put("/entries?id=invalid_id", json=entry_dict)
+        assert response.status_code == 422
+        resp_json = response.json()
+        assert "Invalid entry ID format" in resp_json["detail"]
+
+    """
+    Feature: エントリー更新API
+        Scenario: 存在しないIDの場合は404エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  存在しないIDで'/entries'にPUTする
+            Then:  レスポンスのステータスコードは404である
+            And:   レスポンスボディにエラーメッセージが含まれる
+    """
+
+    def test_update_entry_not_found(self, client, dummy_entry):
+        client_not_found = self._create_client("not_found")
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        
+        # 有効なObjectId形式だが存在しない
+        valid_object_id = "507f1f77bcf86cd799439011"
+        response = client_not_found.put(f"/entries?id={valid_object_id}", json=entry_dict)
+        assert response.status_code == 404
+        resp_json = response.json()
+        assert "Entry not found" in resp_json["detail"]
+
+    """
+    Feature: エントリー更新API
+        Scenario: 必須項目mood_scoreが不足している場合は422エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  必須項目mood_scoreが欠落したデータで'/entries'にPUTする
+            Then:  レスポンスのステータスコードは422である
+            And:   レスポンスボディにバリデーションエラーが含まれる
+    """
+
+    def test_update_entry_missing_mood_score(self, client, dummy_entry):
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict.pop("mood_score", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        
+        response = client.put(f"/entries?id={self.DUMMY_ID}", json=entry_dict)
+        assert response.status_code == 422
+        resp_json = response.json()
+        assert "error" in resp_json.get("detail", "") or "mood_score" in str(resp_json)
+
+    """
+    Feature: エントリー更新API
+        Scenario: データベースエラーの場合は500エラーとなる
+            Given: 実行可能なAPIクライアントがある
+            When:  データベースエラーが発生する状態で'/entries'にPUTする
+            Then:  レスポンスのステータスコードは500である
+            And:   レスポンスボディにエラーメッセージが含まれる
+    """
+
+    def test_update_entry_database_error(self, client, dummy_entry):
+        client_error = self._create_client("error")
+        entry_dict = dummy_entry.model_dump()
+        entry_dict.pop("id", None)
+        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
+        
+        response = client_error.put(f"/entries?id={self.DUMMY_ID}", json=entry_dict)
+        assert response.status_code == 500
+        resp_json = response.json()
+        assert "detail" in resp_json
+        assert "failed to update entry" in resp_json["detail"]
 
 
 class TestAppStartup:
