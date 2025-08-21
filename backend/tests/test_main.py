@@ -10,7 +10,7 @@ FastAPIのエンドポイントをテストするためのクラス
 
 class TestMainApi:
     # 定数
-    DUMMY_ID = 1  # entry_idは整数
+    DUMMY_ID = "550e8400-e29b-41d4-a716-446655440000"  # entry_idはUUID文字列
     FIXED_DATE = date(2025, 8, 14)
 
     def dummy_entry_as_doc(self):
@@ -182,7 +182,8 @@ class TestMainApi:
         # entry内容を厳密に検証
         entry = resp_json.get("entry")
         assert entry is not None
-        assert entry["entry_id"] == 2  # 既存のエントリーがある場合、次のIDは2
+        assert entry["entry_id"] is not None  # UUIDが自動生成される
+        assert len(entry["entry_id"]) == 36  # UUID形式の長さ
         assert entry["record_date"] == self.FIXED_DATE.isoformat()
         assert entry["mood_score"] == dummy_entry.mood_score
         assert entry["sleep_hours"] == dummy_entry.sleep_hours
@@ -468,19 +469,6 @@ class TestMainApi:
 
     """
     Feature: エントリー削除API
-        Scenario: 無効なIDフォーマットでエントリーを削除しようとした場合は422エラーとなる
-            Given: 実行可能なAPIクライアントがある
-            When:  無効なIDフォーマットで'/entries'にDELETEリクエストを実行する
-            Then:  レスポンスのステータスコードは422である
-            And:   レスポンスボディにバリデーションエラーが含まれる
-    """
-
-    def test_delete_entry_invalid_id_format(self, client):
-        response = client.delete("/entries?entry_id=invalid_id")
-        assert response.status_code == 422
-
-    """
-    Feature: エントリー削除API
         Scenario: IDパラメーターが指定されていない場合は422エラーとなる
             Given: 実行可能なAPIクライアントがある
             When:  IDパラメーターなしで'/entries'にDELETEリクエストを実行する
@@ -552,24 +540,6 @@ class TestMainApi:
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         
         response = client.put("/entries", json=entry_dict)
-        assert response.status_code == 422
-
-    """
-    Feature: エントリー更新API
-        Scenario: 無効なID形式の場合は422エラーとなる
-            Given: 実行可能なAPIクライアントがある
-            When:  無効なID形式で'/entries'にPUTする
-            Then:  レスポンスのステータスコードは422である
-            And:   レスポンスボディにエラーメッセージが含まれる
-    """
-
-    def test_update_entry_invalid_id_format(self, client, dummy_entry):
-        entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("entry_id", None)
-        entry_dict.pop("entry_id", None)
-        entry_dict["record_date"] = dummy_entry.record_date.isoformat()
-        
-        response = client.put("/entries?entry_id=invalid_id", json=entry_dict)
         assert response.status_code == 422
 
     """

@@ -56,8 +56,7 @@ async def add_entry(entry: Entry, request: Request) -> EntryResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     
-    # entry_idを自動採番
-    entry.entry_id = Entry.get_next_entry_id(entries_collection)
+    # UUIDは自動生成されるため、追加の処理は不要
     
     # dict化して挿入（JSON互換、Noneは除外）
     entry_dict = entry.model_dump(mode="json", exclude_none=True)
@@ -72,7 +71,7 @@ async def add_entry(entry: Entry, request: Request) -> EntryResponse:
 
 
 @app.put("/entries", response_model=EntryResponse)
-async def update_entry(entry: Entry, request: Request, entry_id: int = Query(..., description="エントリーID")) -> EntryResponse:
+async def update_entry(entry: Entry, request: Request, entry_id: str = Query(..., description="エントリーID")) -> EntryResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     
@@ -101,7 +100,7 @@ async def update_entry(entry: Entry, request: Request, entry_id: int = Query(...
 
 
 @app.delete("/entries", response_model=EntriesResponse)
-async def delete_entry(request: Request, entry_id: int = Query(..., description="削除するエントリーのID")) -> EntriesResponse:
+async def delete_entry(request: Request, entry_id: str = Query(..., description="削除するエントリーのID")) -> EntriesResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     
