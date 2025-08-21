@@ -105,6 +105,37 @@ async def update_entry(entry: Entry, request: Request, id: str = Query(..., desc
             status_code=500, detail="failed to update entry") from err
 
 
+@app.delete("/entries", response_model=EntriesResponse)
+async def delete_entry(request: Request, id: str = Query(..., description="削除するエントリーのID")) -> EntriesResponse:
+    client = request.app.state.mongo
+    entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
+    
+    # IDのバリデーション
+    try:
+        object_id = ObjectId(id)
+    except InvalidId as err:
+        raise HTTPException(
+            status_code=422, detail="Invalid entry ID format") from err
+    
+    try:
+        # エントリーが存在するかチェック
+        existing_entry = entries_collection.find_one({"_id": object_id})
+        if existing_entry is None:
+            raise HTTPException(
+                status_code=404, detail="Entry not found")
+        
+        # エントリーを削除
+        entries_collection.delete_one({"_id": object_id})
+        
+        # 削除後の全データを取得
+        cursor = entries_collection.find({})
+        entries = [Entry(**doc) for doc in cursor]
+        return EntriesResponse(status="success", entries=entries)
+    except PyMongoError as err:
+        raise HTTPException(
+            status_code=500, detail="failed to delete entry") from err
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
