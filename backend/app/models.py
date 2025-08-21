@@ -4,12 +4,6 @@ from typing import Optional, List
 
 
 class Entry(BaseModel):
-    id: Optional[str] = Field(
-        default=None,
-        validation_alias="_id",
-        description="エントリーID（自動生成、任意）",
-        json_schema_extra={"example": "dummy_id"}
-    )
     entry_id: Optional[int] = Field(
         default=None,
         description="エントリーID（シーケンシャル、自動生成）",

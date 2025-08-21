@@ -29,7 +29,6 @@ class TestMainApi:
     def dummy_entry(self):
         from app.models import Entry
         return Entry(
-            entry_id=self.DUMMY_ID,
             record_date=self.FIXED_DATE,
             mood_score=4,
             sleep_hours=6.5,
@@ -108,7 +107,7 @@ class TestMainApi:
                     return MockReplaceOneResult(matched_count=1)
 
             def aggregate(self, pipeline):
-                if self.mock_type == "error":
+                if self.mock_type == "aggregate_error":
                     from pymongo.errors import PyMongoError
                     raise PyMongoError("Database connection failed")
                 elif self.mock_type == "empty":
@@ -173,7 +172,6 @@ class TestMainApi:
         # dummy_entryをdict化してPOST
         entry_dict = dummy_entry.model_dump()
         # idはAPIのPOSTでは不要なので除外
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         # dateはISO文字列に変換
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
@@ -202,7 +200,6 @@ class TestMainApi:
 
     def test_add_entry_empty_memo(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["memo"] = ""
@@ -224,7 +221,6 @@ class TestMainApi:
 
     def test_add_entry_missing_date(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict.pop("record_date", None)
@@ -245,7 +241,6 @@ class TestMainApi:
 
     def test_add_entry_missing_mood_score(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict.pop("mood_score", None)
@@ -266,7 +261,6 @@ class TestMainApi:
 
     def test_add_entry_missing_sleep_hours(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict.pop("sleep_hours", None)
@@ -287,7 +281,6 @@ class TestMainApi:
 
     def test_add_entry_invalid_mood_score(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["mood_score"] = -1
@@ -308,7 +301,6 @@ class TestMainApi:
 
     def test_add_entry_mood_score_too_high(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["mood_score"] = 6
@@ -329,7 +321,6 @@ class TestMainApi:
 
     def test_add_entry_sleep_hours_negative(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["sleep_hours"] = -1
@@ -350,7 +341,6 @@ class TestMainApi:
 
     def test_add_entry_invalid_sleep_hours_type(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["sleep_hours"] = "eight"
@@ -371,7 +361,6 @@ class TestMainApi:
 
     def test_add_entry_database_error(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         client = self._create_client("error")
@@ -401,7 +390,7 @@ class TestMainApi:
         assert isinstance(resp_json["entries"], list)
         if len(resp_json["entries"]) > 0:
             entry = resp_json["entries"][0]
-            assert "id" in entry
+            assert "entry_id" in entry
             assert "record_date" in entry
             assert "mood_score" in entry
             assert "sleep_hours" in entry
@@ -534,7 +523,6 @@ class TestMainApi:
 
     def test_update_entry_success(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
@@ -559,7 +547,6 @@ class TestMainApi:
 
     def test_update_entry_missing_id(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
@@ -578,7 +565,6 @@ class TestMainApi:
 
     def test_update_entry_invalid_id_format(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
@@ -598,7 +584,6 @@ class TestMainApi:
     def test_update_entry_not_found(self, client, dummy_entry):
         client_not_found = self._create_client("not_found")
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
@@ -621,7 +606,6 @@ class TestMainApi:
 
     def test_update_entry_missing_mood_score(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict.pop("entry_id", None)
         entry_dict.pop("mood_score", None)
@@ -644,7 +628,6 @@ class TestMainApi:
     def test_update_entry_database_error(self, client, dummy_entry):
         client_error = self._create_client("error")
         entry_dict = dummy_entry.model_dump()
-        entry_dict.pop("id", None)
         entry_dict.pop("entry_id", None)
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()

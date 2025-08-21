@@ -59,7 +59,7 @@ async def add_entry(entry: Entry, request: Request) -> EntryResponse:
     # entry_idを自動採番
     entry.entry_id = Entry.get_next_entry_id(entries_collection)
     
-    # dict化して挿入（JSON互換、Noneは除外、idは必ず除外）
+    # dict化して挿入（JSON互換、Noneは除外）
     entry_dict = entry.model_dump(mode="json", exclude_none=True)
 
     try:
@@ -67,7 +67,7 @@ async def add_entry(entry: Entry, request: Request) -> EntryResponse:
     except PyMongoError as err:
         raise HTTPException(
             status_code=500, detail="failed to insert entry") from err
-    entry.id = str(result.inserted_id)
+    
     return EntryResponse(status="success", entry=entry)
 
 
@@ -76,10 +76,9 @@ async def update_entry(entry: Entry, request: Request, entry_id: int = Query(...
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     
-    # 更新データを準備（idとentry_idを除外）
+    # 更新データを準備（entry_idを除外）
     entry_dict = entry.model_dump(mode="json", exclude_none=True)
-    entry_dict.pop("id", None)  # IDは更新対象から除外
-    entry_dict.pop("entry_id", None)  # entry_idも更新対象から除外
+    entry_dict.pop("entry_id", None)  # entry_idは更新対象から除外
     
     try:
         # エントリーが存在するかチェックしてから更新
