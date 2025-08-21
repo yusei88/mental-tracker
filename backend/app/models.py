@@ -10,6 +10,11 @@ class Entry(BaseModel):
         description="エントリーID（自動生成、任意）",
         json_schema_extra={"example": "dummy_id"}
     )
+    entry_id: Optional[int] = Field(
+        default=None,
+        description="エントリーID（シーケンシャル、自動生成）",
+        json_schema_extra={"example": 1}
+    )
     record_date: date = Field(
         description="記録日（必須、YYYY-MM-DD形式）",
         json_schema_extra={"example": "2025-08-14"}
@@ -69,6 +74,24 @@ class Entry(BaseModel):
         if isinstance(d["record_date"], date):
             d["record_date"] = d["record_date"].isoformat()
         return d
+
+    @staticmethod
+    def get_next_entry_id(entries_collection):
+        """
+        次のentry_idを取得する。
+        現在登録されているentryの「entry_id」の最大値に+1した値を返す。
+        1つも登録されていない場合は1を返す。
+        """
+        # entry_idの最大値を取得
+        pipeline = [
+            {"$group": {"_id": None, "max_entry_id": {"$max": "$entry_id"}}}
+        ]
+        result = list(entries_collection.aggregate(pipeline))
+        
+        if result and result[0]["max_entry_id"] is not None:
+            return result[0]["max_entry_id"] + 1
+        else:
+            return 1
 
 
 class EntryResponse(BaseModel):

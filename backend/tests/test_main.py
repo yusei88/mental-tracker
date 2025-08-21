@@ -10,14 +10,14 @@ FastAPIのエンドポイントをテストするためのクラス
 
 class TestMainApi:
     # 定数
-    DUMMY_ID = "507f1f77bcf86cd799439011"  # 有効なObjectID形式
+    DUMMY_ID = 1  # entry_idは整数
     FIXED_DATE = date(2025, 8, 14)
 
     def dummy_entry_as_doc(self):
         """dummy_entryをMongoDB document形式に変換"""
         from app.models import Entry
         dummy = Entry(
-            id=self.DUMMY_ID,
+            entry_id=self.DUMMY_ID,
             record_date=self.FIXED_DATE,
             mood_score=4,
             sleep_hours=6.5,
@@ -29,7 +29,7 @@ class TestMainApi:
     def dummy_entry(self):
         from app.models import Entry
         return Entry(
-            id=self.DUMMY_ID,
+            entry_id=self.DUMMY_ID,
             record_date=self.FIXED_DATE,
             mood_score=4,
             sleep_hours=6.5,
@@ -47,7 +47,8 @@ class TestMainApi:
         class MockInsertOneResult:
             @property
             def inserted_id(self):
-                return TestMainApi.DUMMY_ID
+                from bson import ObjectId
+                return ObjectId("507f1f77bcf86cd799439011")
 
         # ダミーデータを生成
         test_instance = self
@@ -106,6 +107,18 @@ class TestMainApi:
                 else:
                     return MockReplaceOneResult(matched_count=1)
 
+            def aggregate(self, pipeline):
+                if self.mock_type == "error":
+                    from pymongo.errors import PyMongoError
+                    raise PyMongoError("Database connection failed")
+                elif self.mock_type == "empty":
+                    # 空のコレクションの場合
+                    return []
+                else:
+                    # 既存のエントリーがある場合の最大entry_id
+                    # テスト用にentry_id=1を持つものがあると仮定
+                    return [{"_id": None, "max_entry_id": 1}]
+
         class MockDB:
             def __init__(self, mock_type="normal"):
                 self.mock_type = mock_type
@@ -161,6 +174,7 @@ class TestMainApi:
         entry_dict = dummy_entry.model_dump()
         # idはAPIのPOSTでは不要なので除外
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
         # dateはISO文字列に変換
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         response = client.post("/entries", json=entry_dict)
@@ -170,7 +184,7 @@ class TestMainApi:
         # entry内容を厳密に検証
         entry = resp_json.get("entry")
         assert entry is not None
-        assert entry["id"] == self.DUMMY_ID
+        assert entry["entry_id"] == 2  # 既存のエントリーがある場合、次のIDは2
         assert entry["record_date"] == self.FIXED_DATE.isoformat()
         assert entry["mood_score"] == dummy_entry.mood_score
         assert entry["sleep_hours"] == dummy_entry.sleep_hours
@@ -189,6 +203,7 @@ class TestMainApi:
     def test_add_entry_empty_memo(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["memo"] = ""
         response = client.post("/entries", json=entry_dict)
@@ -210,6 +225,7 @@ class TestMainApi:
     def test_add_entry_missing_date(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict.pop("record_date", None)
         response = client.post("/entries", json=entry_dict)
@@ -230,6 +246,7 @@ class TestMainApi:
     def test_add_entry_missing_mood_score(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict.pop("mood_score", None)
         response = client.post("/entries", json=entry_dict)
@@ -250,6 +267,7 @@ class TestMainApi:
     def test_add_entry_missing_sleep_hours(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict.pop("sleep_hours", None)
         response = client.post("/entries", json=entry_dict)
@@ -270,6 +288,7 @@ class TestMainApi:
     def test_add_entry_invalid_mood_score(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["mood_score"] = -1
         response = client.post("/entries", json=entry_dict)
@@ -290,6 +309,7 @@ class TestMainApi:
     def test_add_entry_mood_score_too_high(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["mood_score"] = 6
         response = client.post("/entries", json=entry_dict)
@@ -310,6 +330,7 @@ class TestMainApi:
     def test_add_entry_sleep_hours_negative(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["sleep_hours"] = -1
         response = client.post("/entries", json=entry_dict)
@@ -330,6 +351,7 @@ class TestMainApi:
     def test_add_entry_invalid_sleep_hours_type(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["sleep_hours"] = "eight"
         response = client.post("/entries", json=entry_dict)
@@ -350,6 +372,7 @@ class TestMainApi:
     def test_add_entry_database_error(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         client = self._create_client("error")
         response = client.post("/entries", json=entry_dict)
@@ -429,7 +452,7 @@ class TestMainApi:
     """
 
     def test_delete_entry_success(self, client):
-        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        response = client.delete(f"/entries?entry_id={self.DUMMY_ID}")
         assert response.status_code == 200
         resp_json = response.json()
         assert resp_json["status"] == "success"
@@ -448,7 +471,7 @@ class TestMainApi:
 
     def test_delete_entry_not_found(self, monkeypatch):
         client = self._create_client("not_found")
-        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        response = client.delete(f"/entries?entry_id={self.DUMMY_ID}")
         assert response.status_code == 404
         resp_json = response.json()
         assert "detail" in resp_json
@@ -464,11 +487,8 @@ class TestMainApi:
     """
 
     def test_delete_entry_invalid_id_format(self, client):
-        response = client.delete("/entries?id=invalid_id")
+        response = client.delete("/entries?entry_id=invalid_id")
         assert response.status_code == 422
-        resp_json = response.json()
-        assert "detail" in resp_json
-        assert "Invalid entry ID format" in resp_json["detail"]
 
     """
     Feature: エントリー削除API
@@ -495,7 +515,7 @@ class TestMainApi:
 
     def test_delete_entry_database_error(self, monkeypatch):
         client = self._create_client("error")
-        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        response = client.delete(f"/entries?entry_id={self.DUMMY_ID}")
         assert response.status_code == 500
         resp_json = response.json()
         assert "detail" in resp_json
@@ -515,15 +535,17 @@ class TestMainApi:
     def test_update_entry_success(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         entry_dict["mood_score"] = 5  # 更新値
         entry_dict["memo"] = "更新されたメモ"
         
-        response = client.put(f"/entries?id={self.DUMMY_ID}", json=entry_dict)
+        response = client.put(f"/entries?entry_id={self.DUMMY_ID}", json=entry_dict)
         assert response.status_code == 200
         resp_json = response.json()
         assert resp_json["status"] == "success"
-        assert resp_json["entry"]["id"] == self.DUMMY_ID
+        assert resp_json["entry"]["entry_id"] == self.DUMMY_ID
         assert resp_json["entry"]["mood_score"] == 5
         assert resp_json["entry"]["memo"] == "更新されたメモ"
 
@@ -538,6 +560,8 @@ class TestMainApi:
     def test_update_entry_missing_id(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         
         response = client.put("/entries", json=entry_dict)
@@ -555,12 +579,12 @@ class TestMainApi:
     def test_update_entry_invalid_id_format(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         
-        response = client.put("/entries?id=invalid_id", json=entry_dict)
+        response = client.put("/entries?entry_id=invalid_id", json=entry_dict)
         assert response.status_code == 422
-        resp_json = response.json()
-        assert "Invalid entry ID format" in resp_json["detail"]
 
     """
     Feature: エントリー更新API
@@ -575,11 +599,13 @@ class TestMainApi:
         client_not_found = self._create_client("not_found")
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         
-        # 有効なObjectId形式だが存在しない
-        valid_object_id = "507f1f77bcf86cd799439011"
-        response = client_not_found.put(f"/entries?id={valid_object_id}", json=entry_dict)
+        # 存在しないentry_id
+        non_existing_entry_id = 999
+        response = client_not_found.put(f"/entries?entry_id={non_existing_entry_id}", json=entry_dict)
         assert response.status_code == 404
         resp_json = response.json()
         assert "Entry not found" in resp_json["detail"]
@@ -596,10 +622,12 @@ class TestMainApi:
     def test_update_entry_missing_mood_score(self, client, dummy_entry):
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict.pop("mood_score", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         
-        response = client.put(f"/entries?id={self.DUMMY_ID}", json=entry_dict)
+        response = client.put(f"/entries?entry_id={self.DUMMY_ID}", json=entry_dict)
         assert response.status_code == 422
         resp_json = response.json()
         assert "error" in resp_json.get("detail", "") or "mood_score" in str(resp_json)
@@ -617,11 +645,15 @@ class TestMainApi:
         client_error = self._create_client("error")
         entry_dict = dummy_entry.model_dump()
         entry_dict.pop("id", None)
+        entry_dict.pop("entry_id", None)
+        entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         
-        response = client_error.put(f"/entries?id={self.DUMMY_ID}", json=entry_dict)
+        response = client_error.put(f"/entries?entry_id={self.DUMMY_ID}", json=entry_dict)
         assert response.status_code == 500
         resp_json = response.json()
+        assert "detail" in resp_json
+        assert "failed to update entry" in resp_json["detail"]
         assert "detail" in resp_json
         assert "failed to update entry" in resp_json["detail"]
 
