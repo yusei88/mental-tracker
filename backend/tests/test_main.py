@@ -441,7 +441,7 @@ class TestMainApi:
     """
 
     def test_delete_entry_success(self, client):
-        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        response = client.delete(f"/entries?entry_id={self.DUMMY_ID}")
         assert response.status_code == 200
         resp_json = response.json()
         assert resp_json["status"] == "success"
@@ -460,7 +460,7 @@ class TestMainApi:
 
     def test_delete_entry_not_found(self, monkeypatch):
         client = self._create_client("not_found")
-        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        response = client.delete(f"/entries?entry_id={self.DUMMY_ID}")
         assert response.status_code == 404
         resp_json = response.json()
         assert "detail" in resp_json
@@ -491,7 +491,7 @@ class TestMainApi:
 
     def test_delete_entry_database_error(self, monkeypatch):
         client = self._create_client("error")
-        response = client.delete(f"/entries?id={self.DUMMY_ID}")
+        response = client.delete(f"/entries?entry_id={self.DUMMY_ID}")
         assert response.status_code == 500
         resp_json = response.json()
         assert "detail" in resp_json
@@ -516,7 +516,7 @@ class TestMainApi:
         entry_dict["mood_score"] = 5  # 更新値
         entry_dict["memo"] = "更新されたメモ"
         
-        response = client.put(f"/entries?id={self.DUMMY_ID}", json=entry_dict)
+        response = client.put(f"/entries?entry_id={self.DUMMY_ID}", json=entry_dict)
         assert response.status_code == 200
         resp_json = response.json()
         assert resp_json["status"] == "success"
@@ -559,7 +559,7 @@ class TestMainApi:
         
         # 存在しないentry_id
         non_existing_entry_id = 999
-        response = client_not_found.put(f"/entries?id={non_existing_entry_id}", json=entry_dict)
+        response = client_not_found.put(f"/entries?entry_id={non_existing_entry_id}", json=entry_dict)
         assert response.status_code == 404
         resp_json = response.json()
         assert "Entry not found" in resp_json["detail"]
@@ -580,7 +580,7 @@ class TestMainApi:
         entry_dict.pop("mood_score", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         
-        response = client.put(f"/entries?id={self.DUMMY_ID}", json=entry_dict)
+        response = client.put(f"/entries?entry_id={self.DUMMY_ID}", json=entry_dict)
         assert response.status_code == 422
         resp_json = response.json()
         assert "error" in resp_json.get("detail", "") or "mood_score" in str(resp_json)
@@ -601,7 +601,7 @@ class TestMainApi:
         entry_dict.pop("entry_id", None)
         entry_dict["record_date"] = dummy_entry.record_date.isoformat()
         
-        response = client_error.put(f"/entries?id={self.DUMMY_ID}", json=entry_dict)
+        response = client_error.put(f"/entries?entry_id={self.DUMMY_ID}", json=entry_dict)
         assert response.status_code == 500
         resp_json = response.json()
         assert "detail" in resp_json

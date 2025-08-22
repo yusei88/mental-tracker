@@ -79,7 +79,7 @@ async def add_entry(entry: Entry, request: Request) -> EntryResponse:
 
 
 @app.put("/entries", response_model=EntryResponse, tags=["entries"], operation_id="update_entry")
-async def update_entry(entry: Entry, request: Request, id: str = Query(..., description="エントリーID")) -> EntryResponse:
+async def update_entry(entry: Entry, request: Request, entry_id: str = Query(..., description="エントリーID")) -> EntryResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     
@@ -90,7 +90,7 @@ async def update_entry(entry: Entry, request: Request, id: str = Query(..., desc
     try:
         # エントリーが存在するかチェックしてから更新
         result = entries_collection.replace_one(
-            {"entry_id": id}, 
+            {"entry_id": entry_id}, 
             entry_dict
         )
         
@@ -99,7 +99,7 @@ async def update_entry(entry: Entry, request: Request, id: str = Query(..., desc
                 status_code=404, detail="Entry not found")
         
         # 更新されたエントリーを返却用に設定
-        entry.entry_id = id
+        entry.entry_id = entry_id
         return EntryResponse(status="success", entry=entry)
         
     except PyMongoError as err:
@@ -108,19 +108,19 @@ async def update_entry(entry: Entry, request: Request, id: str = Query(..., desc
 
 
 @app.delete("/entries", response_model=EntriesResponse, tags=["entries"], operation_id="delete_entry")
-async def delete_entry(request: Request, id: str = Query(..., description="削除するエントリーのID")) -> EntriesResponse:
+async def delete_entry(request: Request, entry_id: str = Query(..., description="削除するエントリーのID")) -> EntriesResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     
     try:
         # エントリーが存在するかチェック
-        existing_entry = entries_collection.find_one({"entry_id": id})
+        existing_entry = entries_collection.find_one({"entry_id": entry_id})
         if existing_entry is None:
             raise HTTPException(
                 status_code=404, detail="Entry not found")
         
         # エントリーを削除
-        entries_collection.delete_one({"entry_id": id})
+        entries_collection.delete_one({"entry_id": entry_id})
         
         # 削除後の全データを取得
         cursor = entries_collection.find({})
