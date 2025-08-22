@@ -12,12 +12,20 @@ from .constants import DB
 # 環境変数の読み込み
 load_dotenv()
 
+# OpenAPIメタデータの定義
+tags_metadata = [
+    {
+        "name": "entries",
+        "description": "メンタルヘルス記録エントリーの管理操作。日々の気分スコア、睡眠時間、メモなどを記録・管理できます。",
+    }
+]
+
 # 環境確認とDB接続URI取得
 env = os.getenv("ENV", "development")
 if env == "ci":
     # CI環境ではDB接続なし
     print("Running in CI mode - MongoDB connection skipped.")
-    app = FastAPI(summary="KokoroNotoAPI_WithCI")
+    app = FastAPI(summary="KokoroNotoAPI_WithCI", openapi_tags=tags_metadata)
 else:
     mongo_uri = os.getenv("MONGODB_URI")
 
@@ -29,7 +37,7 @@ else:
         finally:
             app.state.mongo.close()  # 終了時にクローズ
 
-    app = FastAPI(lifespan=lifespan, summary="KokoroNotoAPI")
+    app = FastAPI(lifespan=lifespan, summary="KokoroNotoAPI", openapi_tags=tags_metadata)
 
 
 @app.get("/")
@@ -38,7 +46,7 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.get("/entries", response_model=EntriesResponse)
+@app.get("/entries", response_model=EntriesResponse, tags=["entries"], operation_id="get_entries")
 async def get_entries(request: Request) -> EntriesResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
@@ -51,7 +59,7 @@ async def get_entries(request: Request) -> EntriesResponse:
             status_code=500, detail="failed to retrieve entries") from err
 
 
-@app.post("/entries", response_model=EntryResponse)
+@app.post("/entries", response_model=EntryResponse, tags=["entries"], operation_id="add_entry")
 async def add_entry(entry: Entry, request: Request) -> EntryResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
@@ -70,8 +78,8 @@ async def add_entry(entry: Entry, request: Request) -> EntryResponse:
     return EntryResponse(status="success", entry=entry)
 
 
-@app.put("/entries", response_model=EntryResponse)
-async def update_entry(entry: Entry, request: Request, entry_id: str = Query(..., description="エントリーID")) -> EntryResponse:
+@app.put("/entries", response_model=EntryResponse, tags=["entries"], operation_id="update_entry")
+async def update_entry(entry: Entry, request: Request, id: str = Query(..., description="エントリーID")) -> EntryResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     
@@ -82,7 +90,7 @@ async def update_entry(entry: Entry, request: Request, entry_id: str = Query(...
     try:
         # エントリーが存在するかチェックしてから更新
         result = entries_collection.replace_one(
-            {"entry_id": entry_id}, 
+            {"entry_id": id}, 
             entry_dict
         )
         
@@ -91,7 +99,7 @@ async def update_entry(entry: Entry, request: Request, entry_id: str = Query(...
                 status_code=404, detail="Entry not found")
         
         # 更新されたエントリーを返却用に設定
-        entry.entry_id = entry_id
+        entry.entry_id = id
         return EntryResponse(status="success", entry=entry)
         
     except PyMongoError as err:
@@ -99,20 +107,20 @@ async def update_entry(entry: Entry, request: Request, entry_id: str = Query(...
             status_code=500, detail="failed to update entry") from err
 
 
-@app.delete("/entries", response_model=EntriesResponse)
-async def delete_entry(request: Request, entry_id: str = Query(..., description="削除するエントリーのID")) -> EntriesResponse:
+@app.delete("/entries", response_model=EntriesResponse, tags=["entries"], operation_id="delete_entry")
+async def delete_entry(request: Request, id: str = Query(..., description="削除するエントリーのID")) -> EntriesResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     
     try:
         # エントリーが存在するかチェック
-        existing_entry = entries_collection.find_one({"entry_id": entry_id})
+        existing_entry = entries_collection.find_one({"entry_id": id})
         if existing_entry is None:
             raise HTTPException(
                 status_code=404, detail="Entry not found")
         
         # エントリーを削除
-        entries_collection.delete_one({"entry_id": entry_id})
+        entries_collection.delete_one({"entry_id": id})
         
         # 削除後の全データを取得
         cursor = entries_collection.find({})
