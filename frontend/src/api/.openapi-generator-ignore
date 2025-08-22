@@ -4,11 +4,6 @@
 # Use this file to prevent files from being overwritten by the generator.
 # The patterns follow closely to .gitignore or .dockerignore.
 
-# Preserve existing client files
-client.ts
-schema-util.ts
-schema.ts
-
 # Ignore unnecessary files
 docs/
 .npmignore
