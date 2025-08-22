@@ -29,13 +29,11 @@ export interface paths {
             cookie?: never;
         };
         /** Get Entries */
-        get: operations["get_entries"];
-        /** Update Entry */
-        put: operations["update_entry"];
+        get: operations["get_entries_entries_get"];
+        put?: never;
         /** Add Entry */
-        post: operations["add_entry"];
-        /** Delete Entry */
-        delete: operations["delete_entry"];
+        post: operations["add_entry_entries_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -168,7 +166,7 @@ export interface operations {
             };
         };
     };
-    get_entries: {
+    get_entries_entries_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -188,43 +186,7 @@ export interface operations {
             };
         };
     };
-    update_entry: {
-        parameters: {
-            query: {
-                /** @description エントリーID */
-                id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Entry-Input"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EntryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    add_entry: {
+    add_entry_entries_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -244,38 +206,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EntryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_entry: {
-        parameters: {
-            query: {
-                /** @description 削除するエントリーのID */
-                id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EntriesResponse"];
                 };
             };
             /** @description Validation Error */
