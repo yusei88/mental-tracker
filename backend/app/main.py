@@ -14,7 +14,7 @@ from .constants import DB
 # 環境変数の読み込み
 load_dotenv()
 
-# OpenAPIメタデータの定義
+# OpenAPIメタデータの定義 (APIクライアント自動生成対応)
 tags_metadata = [
     {
         "name": "entries",
