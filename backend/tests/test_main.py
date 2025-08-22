@@ -46,8 +46,7 @@ class TestMainApi:
         class MockInsertOneResult:
             @property
             def inserted_id(self):
-                from bson import ObjectId
-                return ObjectId("507f1f77bcf86cd799439011")
+                return "507f1f77bcf86cd799439011"
 
         # ダミーデータを生成
         test_instance = self
