@@ -55,14 +55,12 @@ jobs:
                   rm -f .npmignore README.md package.json tsconfig.json tsconfig.esm.json git_push.sh
                   rm -rf docs
 
-            - name: Commit and push generated files
+            - name: Create branch and commit changes
               run: |
                   git config --local user.email "action@github.com"
                   git config --local user.name "GitHub Action"
+                  BRANCH_NAME="api-client-update-$(date +'%Y%m%d-%H%M%S')"
+                  git checkout -b $BRANCH_NAME
                   git add frontend/src/api/ openapi/schema.json
-                  if git diff --cached --quiet; then
-                    echo "No changes to commit"
-                  else
-                    git commit -m "Auto-generate API client from schema"
-                    git push
-                  fi
+                  git commit -m "Auto-generate API client from schema" || echo "No changes to commit"
+                  git push origin $BRANCH_NAME
