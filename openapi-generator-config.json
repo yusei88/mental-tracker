@@ -1,0 +1,12 @@
+{
+  "npmName": "@mental-tracker/api-client",
+  "npmVersion": "1.0.0",
+  "apiPackage": "api",
+  "modelPackage": "models",
+  "withInterfaces": true,
+  "withSeparateModelsAndApi": true,
+  "useSingleRequestParameter": false,
+  "supportsES6": true,
+  "enumNameSuffix": "Enum",
+  "enumPropertyNaming": "original"
+}

@@ -13,6 +13,12 @@
  */
 
 
-export * from "./api";
-export * from "./configuration";
-export * from "./models";
+
+/**
+ * エントリーID（自動生成、任意）
+ * @export
+ * @interface Id
+ */
+export interface Id {
+}
+

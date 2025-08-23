@@ -13,6 +13,12 @@
  */
 
 
-export * from "./api";
-export * from "./configuration";
-export * from "./models";
+
+/**
+ * メモ（任意、空文字可）
+ * @export
+ * @interface Memo
+ */
+export interface Memo {
+}
+
