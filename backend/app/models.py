@@ -1,14 +1,14 @@
 from pydantic import BaseModel, field_serializer, field_validator, Field, StrictInt, StrictFloat
 from datetime import date
 from typing import Optional, List
+import uuid
 
 
 class Entry(BaseModel):
-    id: Optional[str] = Field(
-        default=None,
-        validation_alias="_id",
-        description="エントリーID（自動生成、任意）",
-        json_schema_extra={"example": "dummy_id"}
+    entry_id: Optional[str] = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="エントリーID（UUID、自動生成）",
+        json_schema_extra={"example": "550e8400-e29b-41d4-a716-446655440000"}
     )
     record_date: date = Field(
         description="記録日（必須、YYYY-MM-DD形式）",

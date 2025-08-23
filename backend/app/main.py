@@ -4,8 +4,6 @@ from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-from bson import ObjectId
-from bson.errors import InvalidId
 from dotenv import load_dotenv
 
 from .models import Entry, EntryResponse, EntriesResponse
@@ -65,7 +63,10 @@ async def get_entries(request: Request) -> EntriesResponse:
 async def add_entry(entry: Entry, request: Request) -> EntryResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
-    # dict化して挿入（JSON互換、Noneは除外、idは必ず除外）
+    
+    # UUIDは自動生成されるため、追加の処理は不要
+    
+    # dict化して挿入（JSON互換、Noneは除外）
     entry_dict = entry.model_dump(mode="json", exclude_none=True)
 
     try:
@@ -73,30 +74,23 @@ async def add_entry(entry: Entry, request: Request) -> EntryResponse:
     except PyMongoError as err:
         raise HTTPException(
             status_code=500, detail="failed to insert entry") from err
-    entry.id = str(result.inserted_id)
+    
     return EntryResponse(status="success", entry=entry)
 
 
 @app.put("/entries", response_model=EntryResponse, tags=["entries"], operation_id="update_entry")
-async def update_entry(entry: Entry, request: Request, id: str = Query(..., description="エントリーID")) -> EntryResponse:
+async def update_entry(entry: Entry, request: Request, entry_id: str = Query(..., description="エントリーID")) -> EntryResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     
-    # ObjectIdの妥当性をチェック
-    try:
-        object_id = ObjectId(id)
-    except InvalidId as err:
-        raise HTTPException(
-            status_code=422, detail="Invalid entry ID format") from err
-    
-    # 更新データを準備（idを除外）
+    # 更新データを準備（entry_idを除外）
     entry_dict = entry.model_dump(mode="json", exclude_none=True)
-    entry_dict.pop("id", None)  # IDは更新対象から除外
+    entry_dict.pop("entry_id", None)  # entry_idは更新対象から除外
     
     try:
         # エントリーが存在するかチェックしてから更新
         result = entries_collection.replace_one(
-            {"_id": object_id}, 
+            {"entry_id": entry_id}, 
             entry_dict
         )
         
@@ -105,7 +99,7 @@ async def update_entry(entry: Entry, request: Request, id: str = Query(..., desc
                 status_code=404, detail="Entry not found")
         
         # 更新されたエントリーを返却用に設定
-        entry.id = id
+        entry.entry_id = entry_id
         return EntryResponse(status="success", entry=entry)
         
     except PyMongoError as err:
@@ -114,26 +108,19 @@ async def update_entry(entry: Entry, request: Request, id: str = Query(..., desc
 
 
 @app.delete("/entries", response_model=EntriesResponse, tags=["entries"], operation_id="delete_entry")
-async def delete_entry(request: Request, id: str = Query(..., description="削除するエントリーのID")) -> EntriesResponse:
+async def delete_entry(request: Request, entry_id: str = Query(..., description="削除するエントリーのID")) -> EntriesResponse:
     client = request.app.state.mongo
     entries_collection = client[DB.DATABASE_NAME][DB.ENTRIES_COLLECTION]
     
-    # IDのバリデーション
-    try:
-        object_id = ObjectId(id)
-    except InvalidId as err:
-        raise HTTPException(
-            status_code=422, detail="Invalid entry ID format") from err
-    
     try:
         # エントリーが存在するかチェック
-        existing_entry = entries_collection.find_one({"_id": object_id})
+        existing_entry = entries_collection.find_one({"entry_id": entry_id})
         if existing_entry is None:
             raise HTTPException(
                 status_code=404, detail="Entry not found")
         
         # エントリーを削除
-        entries_collection.delete_one({"_id": object_id})
+        entries_collection.delete_one({"entry_id": entry_id})
         
         # 削除後の全データを取得
         cursor = entries_collection.find({})
